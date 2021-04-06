@@ -9,7 +9,7 @@ ComponentConfiguration:
     deviceName: sagemaker-ggv2-smem-device-012345678
     deviceFleetName: ggv2-smem-fleet
     bucketName: YOUR_BUCKET_NAME
-    endpoint: arn:aws:iot:<AWS_REGION>:<ACCOUNT_NUMBER>:rolealias/SageMakerEdge-ggv2-smem-fleet
+    endpoint: https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-alias/SageMakerEdge-ggv2-smem-fleet/credentials
 ComponentDependencies:
   aws.greengrass.TokenExchangeService:
     VersionRequirement: '>=0.0.0'
