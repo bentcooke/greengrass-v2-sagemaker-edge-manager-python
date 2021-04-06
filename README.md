@@ -92,9 +92,15 @@ pip install --upgrade protobuf
 ```console
 aws sts get-caller-identity --profile $AWS_PROFILE | jq -r '.Account'
 ```
-* In components/recipe/aws.sagemaker.edgeManager-0.1.0.yaml, update the endpoint with your region and account number:
+* In components/recipe/aws.sagemaker.edgeManager-0.1.0.yaml, update the endpoint with your Role Alias Credential Provider endpoint:
+
+Retrieve the credential provider endpoint:
+```
+aws iot describe-endpoint --endpoint-type iot:CredentialProvider --region $AWS_REGION
+```
+
 ```yaml
-endpoint: arn:aws:iot:<AWS_REGION>:<ACCOUNT_NUMBER>:rolealias/SageMakerEdge-ggv2-smem-fleet
+endpoint: <CredentialProviderEndpoint>/role-aliases/SageMakerEdge-ggv2-smem-fleet/credentials
 ```
 
 * In components/recipe/aws.sagemaker.edgeManager-0.1.0.yaml, update the URI with your region:
