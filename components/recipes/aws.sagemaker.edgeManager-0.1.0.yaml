@@ -43,10 +43,10 @@ Manifests:
           rm /tmp/sagemaker_edge_agent_example.sock
           {artifacts:path}/sagemaker_edge_agent_binary -a /tmp/sagemaker_edge_agent_example.sock -c sagemaker_edge_config.json
     Artifacts:
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManager/0.1.0/us-west-2.pem
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/us-west-2.pem

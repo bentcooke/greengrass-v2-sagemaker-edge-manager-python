@@ -1,7 +1,7 @@
 ---
 RecipeFormatVersion: 2020-01-25
 ComponentName: aws.sagemaker.edgeManagerPythonClient
-ComponentVersion: 0.1.15
+ComponentVersion: 0.1.0
 ComponentDescription: Deploys Sagemaker Edge Manager Python client
 ComponentPublisher: Amazon Web Services, Inc.
 ComponentConfiguration:
@@ -34,18 +34,18 @@ Manifests:
           pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python
           sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}/rush_hour.jpg
     Artifacts:
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.15/edge_manager_python_client.py
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.15/agent_pb2.py
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2.py
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.15/agent_pb2_grpc.py
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.15/rush_hour.jpg
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rush_hour.jpg
         Permission:
           Execute: OWNER
-      - URI: s3://123-waltrsd-gg-components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.15/rush_hour.jpg.license
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rush_hour.jpg.license
         Permission:
           Execute: OWNER

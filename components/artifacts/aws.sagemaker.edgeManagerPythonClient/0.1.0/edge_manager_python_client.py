@@ -1,12 +1,21 @@
 import random
 import sys
-
+import time
+import datetime
+from datetime import timezone
 import agent_pb2_grpc
 import cv2
 import grpc
 import numpy as np
 from agent_pb2 import (ListModelsRequest, LoadModelRequest, PredictRequest,
-                       UnLoadModelRequest, DescribeModelRequest, Tensor, TensorMetadata)
+                       UnLoadModelRequest, DescribeModelRequest, CaptureDataRequest, Tensor, 
+                       TensorMetadata, Timestamp)
+
+import awsiot.greengrasscoreipc
+from awsiot.greengrasscoreipc.model import (
+    QOS,
+    PublishToIoTCoreRequest
+)
 
 model_url = '../com.model.keras'
 model_name = 'mobilenetmodel'
@@ -15,6 +24,8 @@ SIZE = 224
 tensor_shape = [1, 3, SIZE, SIZE]
 image_url = sys.argv[1]
 
+inference_result_topic = "em/inference"
+
 print('IMAGE URL IS {}'.format(image_url))
 
 
@@ -22,6 +33,7 @@ def run():
     with grpc.insecure_channel('unix:///tmp/sagemaker_edge_agent_example.sock') as channel:
 
         edge_manager_client = agent_pb2_grpc.AgentStub(channel)
+        ipc_client = awsiot.greengrasscoreipc.connect()
 
         try:
             response = edge_manager_client.LoadModel(
@@ -30,51 +42,88 @@ def run():
             print(e)
             print('Model already loaded!')
 
-        response = edge_manager_client.ListModels(ListModelsRequest())
+            response = edge_manager_client.ListModels(ListModelsRequest())
 
-        response = edge_manager_client.DescribeModel(
-            DescribeModelRequest(name=model_name))
+            response = edge_manager_client.DescribeModel(
+                DescribeModelRequest(name=model_name))
 
-        # Mean and Std deviation of the RGB colors (collected from Imagenet dataset)
-        mean = [123.68, 116.779, 103.939]
-        std = [58.393, 57.12, 57.375]
+        while (True):
+            time.sleep(30)
 
-        img = cv2.imread(image_url)
-        frame = resize_short_within(img, short=SIZE, max_size=SIZE * 2)
-        nn_input_size = SIZE
-        nn_input = cv2.resize(frame, (nn_input_size, int(nn_input_size / 4 * 3)))
-        nn_input = cv2.copyMakeBorder(nn_input, int(nn_input_size / 8), int(nn_input_size / 8),
-                                      0, 0, cv2.BORDER_CONSTANT, value=(0, 0, 0))
-        copy_frame = nn_input[:]
-        nn_input = nn_input.astype('float32')
-        nn_input = nn_input.reshape((nn_input_size * nn_input_size, 3))
-        scaled_frame = np.transpose(nn_input)
-        scaled_frame[0, :] = scaled_frame[0, :] - mean[0]
-        scaled_frame[0, :] = scaled_frame[0, :] / std[0]
-        scaled_frame[1, :] = scaled_frame[1, :] - mean[1]
-        scaled_frame[1, :] = scaled_frame[1, :] / std[1]
-        scaled_frame[2, :] = scaled_frame[2, :] - mean[2]
-        scaled_frame[2, :] = scaled_frame[2, :] / std[2]
+            print('New prediction')
 
-        request = PredictRequest(name=model_name, tensors=[Tensor(tensor_metadata=TensorMetadata(
-            name=tensor_name, data_type=5, shape=tensor_shape), byte_data=scaled_frame.tobytes())])
+            # Mean and Std deviation of the RGB colors (collected from Imagenet dataset)
+            mean = [123.68, 116.779, 103.939]
+            std = [58.393, 57.12, 57.375]
 
-        response = edge_manager_client.Predict(request)
+            img = cv2.imread(image_url)
+            frame = resize_short_within(img, short=SIZE, max_size=SIZE * 2)
+            nn_input_size = SIZE
+            nn_input = cv2.resize(frame, (nn_input_size, int(nn_input_size / 4 * 3)))
+            nn_input = cv2.copyMakeBorder(nn_input, int(nn_input_size / 8), int(nn_input_size / 8),
+                                        0, 0, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+            copy_frame = nn_input[:]
+            nn_input = nn_input.astype('float32')
+            nn_input = nn_input.reshape((nn_input_size * nn_input_size, 3))
+            scaled_frame = np.transpose(nn_input)
+            scaled_frame[0, :] = scaled_frame[0, :] - mean[0]
+            scaled_frame[0, :] = scaled_frame[0, :] / std[0]
+            scaled_frame[1, :] = scaled_frame[1, :] - mean[1]
+            scaled_frame[1, :] = scaled_frame[1, :] / std[1]
+            scaled_frame[2, :] = scaled_frame[2, :] - mean[2]
+            scaled_frame[2, :] = scaled_frame[2, :] / std[2]
 
-        # read output tensors
-        i = 0
-        detections = []
+            request = PredictRequest(name=model_name, tensors=[Tensor(tensor_metadata=TensorMetadata(
+                name=tensor_name, data_type=5, shape=tensor_shape), byte_data=scaled_frame.tobytes())])
 
-        for t in response.tensors:
-            print("Flattened RAW Output Tensor : " + str(i + 1))
-            i += 1
-            deserialized_bytes = np.frombuffer(t.byte_data, dtype=np.float32)
-            detections.append(np.asarray(deserialized_bytes))
+            dt = datetime.datetime.now(timezone.utc)
+            utc_time = dt.replace(tzinfo=timezone.utc)
+            utc_timestamp = utc_time.timestamp()
 
-        print(detections)
+            response = edge_manager_client.Predict(request)
 
-        # get objects, scores, bboxes
-        results = detections[0]
+            # read output tensors
+            i = 0
+            detections = []
+
+            for t in response.tensors:
+                print("Flattened RAW Output Tensor : " + str(i + 1))
+                i += 1
+                deserialized_bytes = np.frombuffer(t.byte_data, dtype=np.float32)
+                detections.append(np.asarray(deserialized_bytes))
+
+            print ("Got inference results, publishing to AWS IoT Core")
+            #print(detections)
+
+            # publish results to AWS IoT Core
+            message = str(detections[0])
+            qos = QOS.AT_LEAST_ONCE
+            TIMEOUT = 10
+
+            request = PublishToIoTCoreRequest()
+            request.topic_name = inference_result_topic
+            request.payload = bytes(message, "utf-8")
+            request.qos = qos
+            operation = ipc_client.new_publish_to_iot_core()
+            operation.activate(request)
+            future = operation.get_response()
+            future.result(TIMEOUT)
+
+            # get detection results
+            results = detections[0]
+
+            # capture inference results in S3
+            print ("Publishing to Amazon S3 bucket")
+            request = CaptureDataRequest(
+                model_name=model_name,
+                capture_id="capture" + str(utc_timestamp),
+                inference_timestamp=Timestamp(seconds=1, nanos=1),
+                input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                    byte_data=scaled_frame.tobytes())],
+                output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                    byte_data=scaled_frame.tobytes())]
+            )
+            response = edge_manager_client.CaptureData(request)
 
         response = edge_manager_client.UnLoadModel(
             UnLoadModelRequest(name=model_name))
