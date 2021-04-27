@@ -1,0 +1,19 @@
+[Unit]
+Description=sagemaker edge agent
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=REPLACE_USER
+EnvironmentFile=REPLACE_SAGEMAKER_EDGE_DIRECTORY/agent.env
+ExecStart=REPLACE_SAGEMAKER_EDGE_DIRECTORY/bin/sagemaker_edge_agent_binary -a ${SOCKET_ADDRESS} -c ${AGENT_CONFIG_FILE_PATH}
+WorkingDirectory=REPLACE_SAGEMAKER_EDGE_DIRECTORY
+Restart=always
+RestartSec=15
+KillMode=mixed
+KillSignal=SIGHUP
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

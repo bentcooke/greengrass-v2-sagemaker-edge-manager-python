@@ -8,10 +8,10 @@ import numpy as np
 from agent_pb2 import (ListModelsRequest, LoadModelRequest, PredictRequest,
                        UnLoadModelRequest, DescribeModelRequest, Tensor, TensorMetadata)
 
-model_url = '../com.model.darknet'
-model_name = 'darknet-model'
-tensor_name = 'data'
-SIZE = 416
+model_url = '../com.model.keras'
+model_name = 'mobilenetmodel'
+tensor_name = 'input_2'
+SIZE = 224
 tensor_shape = [1, 3, SIZE, SIZE]
 image_url = sys.argv[1]
 
@@ -72,21 +72,9 @@ def run():
             detections.append(np.asarray(deserialized_bytes))
 
         print(detections)
-        # convert the bounding boxes
-        new_list = []
-        for index, item in enumerate(detections[2]):
-            if index % 4 == 0:
-                new_list.append(detections[2][index - 4:index])
-        detections[2] = new_list[1:]
 
         # get objects, scores, bboxes
-        objects = detections[0]
-        scores = detections[1]
-        bounding_boxes = new_list[1:]
-
-        print(objects)
-        print(scores)
-        print(bounding_boxes)
+        results = detections[0]
 
         response = edge_manager_client.UnLoadModel(
             UnLoadModelRequest(name=model_name))
