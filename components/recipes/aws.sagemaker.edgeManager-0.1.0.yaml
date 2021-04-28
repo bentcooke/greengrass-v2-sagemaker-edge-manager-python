@@ -10,7 +10,7 @@ ComponentConfiguration:
     deviceFleetName: YOUR_FLEET_NAME
     bucketName: INFERENCE_BUCKET
     endpoint: https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-alias/<your_role_name>/credentials
-    caCertPath: /greengrass/v2/auth/demo.cert.pem
+    caCertPath: /greengrass/v2/auth/demo.root.pem
     privKeyPath: /greengrass/v2/auth/demo.pkey.pem
     certPath: /greengrass/v2/auth/demo.cert.pem
 ComponentDependencies:
