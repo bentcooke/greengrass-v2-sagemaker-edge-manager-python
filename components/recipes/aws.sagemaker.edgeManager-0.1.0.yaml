@@ -49,4 +49,4 @@ Manifests:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json
         Permission:
           Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/us-west-2.pem
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManager/0.1.0/<REGION>.pem
