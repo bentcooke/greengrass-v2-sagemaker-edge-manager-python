@@ -10,6 +10,6 @@ Manifests:
       architecture: aarch64
     Lifecycle:
       Install: |-
-        tar xf {artifacts:path}/keras-model-1.0.tar.gz
+        tar xf {artifacts:path}/mxnetclassifier-1.0.tar.gz
     Artifacts:
-      - URI: s3://YOUR_BUCKET_NAME/models/packaged/mxnetclassifier-1.0.tar.gz
+      - URI: s3://123456-waltrsd-gg-components/models/packaged/mxnetclassifier-1.0.tar.gz
