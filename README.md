@@ -18,7 +18,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
 
 * i.MX8MQEVK or [MCIMX8M-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-applications-processor:MCIMX8M-EVK)-with [AWS IoT Greengrass V2](https://docs.aws.amazon.com/greengrass/v2/developerguide/install-greengrass-core-v2.html) installed
     * You can use [NXP’s Yocto User Guide](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf) and [meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass) to build this image. (coming in a future workshop!)
-* Python 3.x and the following Pip modules:
+* Python 3.x and the following Pip modules on your device:
     * opencv-python-headless
     * awsiotsdk
     * numpy
@@ -26,7 +26,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
     * protobuf
     * grpcio
     * You can install them with this command:
-    * pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk
+    * * ``pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk``
 * A certificate and private key provisioned to your device.
 * Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
 * Host machine with a Unix terminal (Linux or Mac OS)
