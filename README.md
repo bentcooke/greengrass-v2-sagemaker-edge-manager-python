@@ -159,25 +159,25 @@ First we need to download the pre-built Edge Manager Agent binary for the target
 Get the latest release of the Edge Manager Agent:
 
 ```
-`aws s3 ls s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/ | sort -r`
+aws s3 ls s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/ | sort -r
 ```
 
 The releases are timestamped. Download the latest version and include the binary in the components/artifacts/aws.sagemaker.edgeManager/0.1.0 directory.
 
 ```
-`mkdir edge_manager_agent`
-`cd edge_manager_agent`
-`aws s3 cp s3``:``//sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/``<VERSION>``/``<VERSION>``.tgz .
-aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/sha256_hex.shasum .`
-`tar zxvf ``<``VERSION``>.``tgz`
-`mv bin``/``sagemaker_edge_agent_binary ``../``components``/``artifacts``/``aws``.``sagemaker``.``edgeManager``/``0.1``.``0`
+mkdir edge_manager_agent
+cd edge_manager_agent
+aws s3 cp s3``:``//sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/``<VERSION>``/``<VERSION>``.tgz .
+aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/sha256_hex.shasum .
+tar zxvf ``<``VERSION``>.``tgz
+mv bin``/``sagemaker_edge_agent_binary ``../``components``/``artifacts``/``aws``.``sagemaker``.``edgeManager``/``0.1``.``0
 ```
 
-Yo will also need to download a Root Certificate which is used to verify that the model was signed in the region it has been created. Replace <REGION> with the region in which your Greengrass device is deployed:
+You will also need to download a Root Certificate which is used to verify that the model was signed in the region it has been created. Replace <REGION> with the region in which your Greengrass device is deployed:
 
 ```
-`aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Certificates/<REGION>/<REGION>.pem .
-mv <REGION>.pem ../components/artifacts/aws.sagemaker.edgeManager/0.1.0`
+aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Certificates/<REGION>/<REGION>.pem .
+mv <REGION>.pem ../components/artifacts/aws.sagemaker.edgeManager/0.1.0
 ```
 
 Open the file components/recipes/aws.sagemaker.edgeManager-0.1.0.yaml. Replace ‘<YOUR_BUCKET_NAME>’ under ‘Artifacts’ with the gg-components bucket created earlier to store your Greengrass components. Replace ‘<REGION>’ with the region name in which you are deploying your edge device (the name of the root certificate .pem file downloaded previously) . Leave the DefaultConfiguration parameters alone, they can be configured from the AWS Cloud.
