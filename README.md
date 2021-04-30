@@ -180,7 +180,7 @@ aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Certificates/<
 mv <REGION>.pem ../components/artifacts/aws.sagemaker.edgeManager/0.1.0
 ```
 
-Open the file components/recipes/aws.sagemaker.edgeManager-0.1.0.yaml. Replace ‘<YOUR_BUCKET_NAME>’ under ‘Artifacts’ with the gg-components bucket created earlier to store your Greengrass components. Replace ‘<REGION>’ with the region name in which you are deploying your edge device (the name of the root certificate .pem file downloaded previously) . Leave the DefaultConfiguration parameters alone, they can be configured from the AWS Cloud.
+Open the file components/recipes/aws.sagemaker.edgeManager-0.1.0.yaml. Replace ‘<YOUR_BUCKET_NAME>’ under ‘Artifacts’ with the gg-components bucket created earlier to store your Greengrass components. Replace ``<REGION>`` with the region name in which you are deploying your edge device (the name of the root certificate .pem file downloaded previously) . Leave the DefaultConfiguration parameters alone, they can be configured from the AWS Cloud.
 
 First, upload the artifacts to your gg-components Amazon S3 bucket:
 
