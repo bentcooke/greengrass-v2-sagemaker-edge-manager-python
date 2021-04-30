@@ -352,7 +352,7 @@ Next we will prepare the model to integrate with the Edge Manager Agent. The pac
 
 Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job → Create Edge packaging job**
 
-* Edge packaging job name: imx1qm-image-classification-packaging-001
+* Edge packaging job name: imx8qm-image-classification-packaging-001
 * Model name: mxnetclassifier
 * Model version: 1.0
 * IAM role:
@@ -368,7 +368,7 @@ Click ‘Next’
 
 Click ‘Next’
 
-* S3 bucket URI: s3://<S3 Bucket Name>/models/packaged/
+* S3 bucket URI: ``s3://<S3-Bucket-Name>/models/packaged/``
 
 ![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png.png)
 
