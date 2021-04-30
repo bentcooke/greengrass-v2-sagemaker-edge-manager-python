@@ -512,6 +512,6 @@ Inside the ‘hour’ folder there will be .jsonl objects. These .jsonl files co
 
 Edge Manager device fleets let you see the operation status of your devices and the models deployed to those devices. From the console, you can see which models are deployed to a device, their version, and the latest heartbeat and inference result.
 
-Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → **Your EM Device**
+Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → Your EM Device**
 
 ![View Device Status](images/viewdevicestatus.png)
