@@ -167,10 +167,10 @@ The releases are timestamped. Download the latest version and include the binary
 ```
 mkdir edge_manager_agent
 cd edge_manager_agent
-aws s3 cp s3``:``//sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/``<VERSION>``/``<VERSION>``.tgz .
+aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/<VERSION>.tgz .
 aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/sha256_hex.shasum .
-tar zxvf ``<``VERSION``>.``tgz
-mv bin``/``sagemaker_edge_agent_binary ``../``components``/``artifacts``/``aws``.``sagemaker``.``edgeManager``/``0.1``.``0
+tar zxvf <VERSION>.tgz
+mv bin/sagemaker_edge_agent_binary ../components/artifacts/aws.sagemaker.edgeManager/0.1.0
 ```
 
 You will also need to download a Root Certificate which is used to verify that the model was signed in the region it has been created. Replace <REGION> with the region in which your Greengrass device is deployed:
@@ -324,7 +324,7 @@ Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → C
         * S3 buckets you specify: Any S3 Bucket
         * Click on ‘Create role’
 * Input configuration:
-    * Location of model artifacts: s3://<S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz
+    * Location of model artifacts: ``s3://<S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz``
         * This is the location of the uncompiled model trained in step **‘Train MXNet model on Jupyter Notebook’**
     * Data input configuration: {"data":[1, 3, 224, 224]}
     * Machine learning framework: MXNet
@@ -334,7 +334,7 @@ Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → C
 * Output configuration
     * Target device
     * Target device: imx8qm
-    * S3 Output location: s3://<S3 Bucket Name>/models/compiled
+    * S3 Output location: ``s3://<S3 Bucket Name>/models/compiled``
 
 Click on ‘Submit’. The compilation job will take 2-3 minutes. When it is finished, the Status will change to ‘COMPLETED’
 
