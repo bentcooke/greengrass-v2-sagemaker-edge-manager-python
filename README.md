@@ -230,15 +230,15 @@ Click ‘Next’
 aws.sagemaker.edgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
 
 ```
-`{`
-`  ``"deviceName"``:`` ``"sagemaker-ggv2-smem-device-012345678"``,`
-`  ``"deviceFleetName"``:`` ``"greengrassv2fleet"``,`
-`  ``"bucketName"``:`` ``"INFERENCE_BUCKET"``,`
-`  ``"endpoint"``:`` ``"https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-aliases/<your_role_name>/credentials"``,`
-`  ``"caCertPath"``:`` ``"/greengrass/v2/auth/demo.cert.pem"``,`
-`  ``"privKeyPath"``:`` ``"/greengrass/v2/auth/demo.pkey.pem"``,`
-`  ``"certPath"``:`` ``"/greengrass/v2/auth/demo.cert.pem"`
-`}`
+{
+  "deviceName": "sagemaker-ggv2-smem-device-012345678",
+  "deviceFleetName": "greengrassv2fleet",
+  "bucketName": "INFERENCE_BUCKET",
+  "endpoint": "https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-aliases/<your_role_name>/credentials",
+  "caCertPath": "/greengrass/v2/auth/demo.cert.pem",
+  "privKeyPath":"/greengrass/v2/auth/demo.pkey.pem",
+  "certPath": "/greengrass/v2/auth/demo.cert.pem"
+}
 ```
 
 * deviceName is the name of your SageMaker Edge Device name created in the step ‘**Add your AWS IoT Greengrass Core Device to the Edge Manager Fleet’**
