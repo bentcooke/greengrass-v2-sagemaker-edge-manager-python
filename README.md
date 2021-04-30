@@ -10,7 +10,7 @@ This is an advanced workshop intended for those already familiar with basic AWS 
 
 **IT IS RECOMMENDED TO RUN THIS WORKSHOP IN us-west-2 REGION.**
 
-You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in[https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass/recipes-iot/aws-iot-greengrass) to include the Greengrass V2 software with your [i.MX Yocto Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
+You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in [https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass/recipes-iot/aws-iot-greengrass) to include the Greengrass V2 software with your [i.MX Yocto Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
 
 ![Greengrass Core](images/GGCore.png)
 
@@ -486,7 +486,7 @@ If the LoadModel request from the application was successful, the Edge Manager A
 
 Inference results should be published to AWS IoT Core and to Amazon S3. 
 
-To check the inference results arriving in AWS IoT Core, Navigate to the **AWS IoT Console → Test →** **** **MQTT test client.**
+To check the inference results arriving in AWS IoT Core, Navigate to the **AWS IoT Console → Test → MQTT test client.**
 
 Under ‘Subscribe to a topic’, type in ‘em/inference’. Every 30 seconds, inference results should arrive on the ‘em/inference’ topic with the result and confidence level.
 
