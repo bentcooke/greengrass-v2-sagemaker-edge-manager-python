@@ -10,7 +10,7 @@ This is an advanced workshop intended for those already familiar with basic AWS 
 
 **IT IS RECOMMENDED TO RUN THIS WORKSHOP IN us-west-2 REGION.**
 
-You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in[https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass)/recipes-iot/aws-iot-greengrass to include the Greengrass V2 software with your [i.MX Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
+You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in[https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass/recipes-iot/aws-iot-greengrass) to include the Greengrass V2 software with your [i.MX Yocto Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
 
 ![Greengrass Core](images/GGCore.png)
 
