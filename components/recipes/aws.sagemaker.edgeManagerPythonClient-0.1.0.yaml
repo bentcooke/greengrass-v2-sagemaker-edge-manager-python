@@ -21,7 +21,7 @@ ComponentDependencies:
   aws.sagemaker.edgeManager:
     VersionRequirement: '~0.1.0'
     DependencyType: HARD
-  com.model.keras:
+  com.model.image-classifier:
     VersionRequirement: '~0.1.0'
     DependencyType: HARD
 Manifests:
