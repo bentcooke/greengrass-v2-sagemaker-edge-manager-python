@@ -23,7 +23,8 @@ model_name = 'mxnetclassifier'
 tensor_name = 'data'
 SIZE = 224
 tensor_shape = [1, 3, SIZE, SIZE]
-image_urls = ['./rainbow.jpeg', './tomato.jpeg', './dog.jpeg', './frog.jpeg']
+image_path = sys.argv[1]
+image_urls = [image_path +'/rainbow.jpeg', image_path+'/tomato.jpeg', image_path+'/dog.jpeg', image_path+'/frog.jpeg']
 
 inference_result_topic = "em/inference"
 

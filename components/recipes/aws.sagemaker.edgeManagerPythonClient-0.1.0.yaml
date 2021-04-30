@@ -31,8 +31,7 @@ Manifests:
     Lifecycle:
       run:
         script: |-
-          pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python
-          sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py
+          sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}
     Artifacts:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
         Permission:
