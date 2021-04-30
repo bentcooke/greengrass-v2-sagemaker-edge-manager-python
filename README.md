@@ -1,6 +1,8 @@
 # AWS IoT Greengrass V2 and Amazon SageMaker Edge Manager
 
-[Image: Screen Shot 2021-04-07 at 10.12.14 AM.png]This workshop walks you through the end to end flow of training an Image Classification model on Amazon SageMaker to deploying that model and an application to an NXP i.MX8MQEVK device. Results are uploaded to AWS IoT and input and output tensors are uploaded to Amazon S3.
+![Architecture](images/Architecture.png)
+
+This workshop walks you through the end to end flow of training an Image Classification model on Amazon SageMaker to deploying that model and an application to an NXP i.MX8MQEVK device. Results are uploaded to AWS IoT and input and output tensors are uploaded to Amazon S3.
 
 This is an advanced workshop intended for those already familiar with basic AWS IoT Greengrass and AWS Cloud concepts.
 
@@ -9,7 +11,9 @@ This is an advanced workshop intended for those already familiar with basic AWS 
 **IT IS RECOMMENDED TO RUN THIS WORKSHOP IN us-west-2 REGION.**
 
 You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in[https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass)/recipes-iot/aws-iot-greengrass to include the Greengrass V2 software with your [i.MX Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
-[Image: Screen Shot 2021-04-06 at 4.23.40 PM.png]
+
+![Greengrass Core](images/GGCore.png)
+
 **Requirements:**
 
 * i.MX8MQEVK or [MCIMX8M-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-applications-processor:MCIMX8M-EVK)-with [AWS IoT Greengrass V2](https://docs.aws.amazon.com/greengrass/v2/developerguide/install-greengrass-core-v2.html) installed
@@ -105,11 +109,15 @@ Navigate to **Amazon Sagemaker Console →** **Edge Manager → Edge device flee
 * Device fleet name: greengrassv2fleet
 * IAM Role: The ARN of the IAM Role modified in the previous step. It is the same one that is linked to your IoT Role Alias. 
 
-[Image: Screen Shot 2021-04-06 at 5.14.41 PM.png]Click ‘Next’.
+![Create Device Fleet](images/emdevicefleet.png)
+
+Click ‘Next’.
 
 * S3 bucket URI: s3://<your-inference-bucket-name>/inference-results
 
-[Image: Screen Shot 2021-04-06 at 5.25.30 PM.png]Click ‘Submit’ to finish creating the Edge Manager Fleet.
+![Create Device Fleet](images/emdevicefleet2.png)
+
+Click ‘Submit’ to finish creating the Edge Manager Fleet.
 
 Creating an Edge Manager fleet will also create a Role Alias in AWS IoT. 
 
@@ -123,12 +131,16 @@ Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devic
 
 * Device fleet name: GreengrassV2Fleet (the name of your fleet)
 
-[Image: Screen Shot 2021-04-06 at 5.28.24 PM.png]Click ‘Next’
+![Register EM Device](images/registerdevice.png)
+
+Click ‘Next’
 
 * Device Name: sagemaker-ggv2-smem-device-012345678
 * IoT Name: The name of your AWS IoT Core Greengrass Core Thing Name
 
-[Image: Screen Shot 2021-04-07 at 2.07.45 PM.png]Click ‘Submit’
+![Register EM Device](images/registerdevice2.png)
+
+Click ‘Submit’
 
 ## **Setup S3 Bucket for Greengrass Component Resources**
 
@@ -183,9 +195,13 @@ Next, create the AWS IoT Greengrass Component:
 Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
 
 Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/aws.sagemaker.edgeManager-0.1.0.yaml into the Recipe text box.
-[Image: Screen Shot 2021-04-07 at 9.54.20 AM.png]
+
+![Create EM Recipe](images/createemrecipe.png)
+
 Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
-[Image: Screen Shot 2021-04-07 at 9.56.53 AM.png]
+
+![Create EM Recipe](images/deployableemcomponent.png)
+
 ## **Deploy the SageMaker Edge Manager Agent Greengrass component to the device**
 
 Next, we will deploy the Edge Manager Agent to the Greengrass device.
@@ -195,7 +211,9 @@ Navigate to the **AWS IoT Console → Greengrass → Deployments → Create**
 * Name: ‘Deployment for ML using EM’
 * Deployment target: Choose either ‘Core device’ to deploy this to a single IoT Thing, or ‘Thing group’ to deploy it to all Greengrass Cores in a Thing Group. In a production environment, Thing Groups can be used to deploy components to a fleet of devices
 
-[Image: Screen Shot 2021-04-07 at 10.03.08 AM.png]Click ‘Next’, and then select the components you want to include in your Greengrass Deployment.
+![Create Deployment](images/createdeployment.png)
+
+Click ‘Next’, and then select the components you want to include in your Greengrass Deployment.
 
 My components:
 
@@ -206,7 +224,10 @@ Public components:
 * aws.greengrass.TokenExchangeService - the Edge Manager component depends on this to access the Amazon S3 bucket.
 
 Click ‘Next’
-[Image: Screen Shot 2021-04-07 at 1.59.59 PM.png]aws.sagemaker.edgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
+
+![Configure component](images/configureemcomponent.png)
+
+aws.sagemaker.edgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
 
 ```
 `{`
@@ -230,7 +251,9 @@ Click ‘Next’
 * privKeyPath is the path to the device’s private key on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
 * certPath is the path to the device certificate used to authenticate with AWS IoT on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
 
-[Image: Screen Shot 2021-04-07 at 2.17.07 PM.png]Once you have configured your Greengrass component, click ‘Confirm’. Then click ‘Next’. If you do not wish to configure any advanced settings, click ‘Next’ again. Review the deployment for any errors, then click on ‘Deploy’.
+![Configured component](emconfiguration.png)
+
+Once you have configured your Greengrass component, click ‘Confirm’. Then click ‘Next’. If you do not wish to configure any advanced settings, click ‘Next’ again. Review the deployment for any errors, then click on ‘Deploy’.
 
 Monitor the state of the deployment from the AWS IoT Greengrass console. You can also monitor the state of the deployment from the device by running:
 
@@ -281,7 +304,10 @@ Upload the file ‘image-classification-fulltraining-highlevel.ipynb’ and open
 Follow the steps carefully in the Jupyter Notebook by pressing the Run button. Be sure to wait for each step to complete before proceeding to the next step. 
 
 At the end of your training job, you should see an output similar to the following:
-[Image: Screen Shot 2021-04-29 at 4.36.07 PM.png]Once you have completed training your model, hover over ‘Kernel’ at the top of the Jupyter Notebook and ‘Shutdown’ .
+
+![Training Job](images/trainingjob.png)
+
+Once you have completed training your model, hover over ‘Kernel’ at the top of the Jupyter Notebook and ‘Shutdown’ .
 
 Your model will be stored in Amazon S3 bucket that you specified in the Jupyter notebook. The folder structure should be similar to the following:
 <your-bucket>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz
@@ -303,7 +329,7 @@ Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → C
     * Data input configuration: {"data":[1, 3, 224, 224]}
     * Machine learning framework: MXNet
 
-[Image: Screen Shot 2021-04-29 at 4.58.39 PM.png]
+![Neo compilation job](images/neocompilationjob.png)
 
 * Output configuration
     * Target device
@@ -313,9 +339,13 @@ Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → C
 Click on ‘Submit’. The compilation job will take 2-3 minutes. When it is finished, the Status will change to ‘COMPLETED’
 
 Open the compilation job and note the S3 compiled model artifact S3 URI.
-[Image: Screen Shot 2021-04-29 at 4.58.04 PM.png]Check that the compiled model is in the specified Amazon S3 bucket.
 
-[Image: Screen Shot 2021-04-29 at 9.07.40 PM.png]
+![Neo Compilation complete](images/completedneojob.png)
+
+Check that the compiled model is in the specified Amazon S3 bucket.
+
+![Compiled Model in S3](images/s3compiledmodel.png)
+
 ## Package the compiled model for Edge Manager
 
 Next we will prepare the model to integrate with the Edge Manager Agent. The packaging job will sign the model’s hash so that the device can verify it’s integrity.
@@ -330,7 +360,8 @@ Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job �
     * Any S3 bucket
     * Create Role
 
-[Image: Screen Shot 2021-04-29 at 5.00.28 PM.png]
+![Create Edge Packaging Job](images/createedgepackagingjob.png)
+
 Click ‘Next’
 
 * Compilation job name:  imx8qm-image-classification-001 (this is the name of the compilation job from the Neo compilation job)
@@ -339,10 +370,14 @@ Click ‘Next’
 
 * S3 bucket URI: s3://<S3 Bucket Name>/models/packaged/
 
-[Image: Screen Shot 2021-04-08 at 11.36.02 AM.png]Click ‘Submit’. The packaging job will take approximately 2-3 minutes. When it is done the Status will change to ‘COMPLETED’
+![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png)
+
+Click ‘Submit’. The packaging job will take approximately 2-3 minutes. When it is done the Status will change to ‘COMPLETED’
 
 Check that the packaged model is present in the Amazon S3 output location provided above:
-[Image: Screen Shot 2021-04-29 at 5.04.49 PM.png]
+
+![Packaging Job in S3](images/s3packagedjob.png)
+
 ## Create the Greengrass component for the model
 
 Open the file ‘com.model.image.classifier-0.1.0.yaml’. Under ‘Artifacts’, change the URI for your packaged model to the S3 URI created in the previous step. You can change YOUR_BUCKET_NAME to the correct S3 bucket where your packaged model is stored on Amazon S3.
@@ -383,9 +418,12 @@ Review the code in the edge_manager_python_client.py script. Note the lifecycle 
 The application first loads the Image classification model. Next, it selects a random image of a dog, tomato, frog, or a rainbow for the model to run a prediction. It receives the results of the inference, gets the highest confidence level return. It publishes that data to AWS IoT Core, and then triggers the Edge Manager Agent to capture the results in Amazon S3.
 
 The following four images are used in the inference:
-[Image: rainbow.jpeg]
-[Image: dog.jpeg][Image: tomato.jpeg]
-[Image: frog.jpeg]
+
+![Image: rainbow.jpeg](images/rainbow.jpeg)
+![Image: dog.jpeg](images/dog.jpeg)
+![Image: tomato.jpeg](images/tomato.jpeg)
+![Image: frog.jpeg](images/frog.jpeg)
+
 Upload the GRPC client, Python application, and sample images to S3:
 
 ```
@@ -406,7 +444,8 @@ Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/aws.sagemake
 
 Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
 
-[Image: Screen Shot 2021-04-29 at 9.06.34 PM.png]
+![Application Componenet](images/applicationcomponent.png)
+
 ## Deploy Model and Application Components to the Edge
 
 Navigate to the **AWS IoT Console → Greengrass → Deployments**
@@ -417,13 +456,16 @@ Click ‘Next’ and on the ‘Select components’ menu, turn off the option �
 
 Select ‘com.model.image-classifier’ and ‘aws.sagemaker.edgeManagerPythonClient’.
 
-[Image: Screen Shot 2021-04-29 at 9.22.32 PM.png]Click ‘Next’, leave the default configuration for each component, then click ‘Next’. Leave the advanced settings as defaults and then click ‘Next’ again.
+![Model and Application Deployment](images/modelandapplicationdeployment.png)
+
+Click ‘Next’, leave the default configuration for each component, then click ‘Next’. Leave the advanced settings as defaults and then click ‘Next’ again.
 
 Review the deployment, then when you are ready to deploy the components to the device click on ‘Deploy’. 
 
 Wait 2-3 minutes and then check that your Greengrass Core device is HEALTHY from the AWS IoT Greengrass console:
 
-[Image: Screen Shot 2021-04-29 at 10.46.05 PM.png]
+![Healthy GG Core](images/healthycore.png)
+
 To check if the application was successfully deployed, tail the component log on the device:
 
 ```
@@ -448,8 +490,8 @@ To check the inference results arriving in AWS IoT Core, Navigate to the **AWS I
 
 Under ‘Subscribe to a topic’, type in ‘em/inference’. Every 30 seconds, inference results should arrive on the ‘em/inference’ topic with the result and confidence level.
 
+![MQTT messages](images/mqttresults.png)
 
-[Image: Screen Shot 2021-04-29 at 10.44.56 PM.png]
 To check the inference results meta data, input and output tensors from Amazon S3,Navigate to the **Amazon S3 console → <your-inference-bucket-name>.**
 
 In this S3 bucket, the following folder hierarchy should be present:
@@ -464,11 +506,12 @@ In this S3 bucket, the following folder hierarchy should be present:
 
 Inside the ‘hour’ folder there will be .jsonl objects. These .jsonl files contain meta-data about each inference prediction and result. In the raw-data/input-tensors and output-tensors folders is additional data including the input data shape and output predictions.
 
-[Image: Screen Shot 2021-04-29 at 10.47.33 PM.png]
+![S3 Inference Results](images/s3inferenceresults.png)
+
 ## Check the operating status of your device fleet
 
 Edge Manager device fleets let you see the operation status of your devices and the models deployed to those devices. From the console, you can see which models are deployed to a device, their version, and the latest heartbeat and inference result.
 
 Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → <your EM edge device>**
 
-[Image: Screen Shot 2021-04-29 at 10.49.32 PM.png]
+![View Device Status](images/viewdevicestatus.png)
