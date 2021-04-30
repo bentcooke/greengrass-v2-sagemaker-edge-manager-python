@@ -32,7 +32,7 @@ Manifests:
       run:
         script: |-
           pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python
-          sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}/rush_hour.jpg
+          sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py
     Artifacts:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
         Permission:
@@ -43,9 +43,15 @@ Manifests:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py
         Permission:
           Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rush_hour.jpg
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/dog.jpeg
         Permission:
           Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rush_hour.jpg.license
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg
+        Permission:
+          Execute: OWNER
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/tomato.jpeg
+        Permission:
+          Execute: OWNER
+      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rainbow.jpeg
         Permission:
           Execute: OWNER
