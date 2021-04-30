@@ -251,7 +251,7 @@ aws.sagemaker.edgeManager component needs to be configured. Select the component
 * privKeyPath is the path to the device’s private key on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
 * certPath is the path to the device certificate used to authenticate with AWS IoT on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
 
-![Configured component](emconfiguration.png)
+![Configured component](images/emconfiguration.png)
 
 Once you have configured your Greengrass component, click ‘Confirm’. Then click ‘Next’. If you do not wish to configure any advanced settings, click ‘Next’ again. Review the deployment for any errors, then click on ‘Deploy’.
 
@@ -360,7 +360,7 @@ Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job �
     * Any S3 bucket
     * Create Role
 
-![Create Edge Packaging Job](images/createedgepackagingjob.png)
+![Create Edge Packaging Job](images/createedgepackingjob.png)
 
 Click ‘Next’
 
@@ -370,7 +370,7 @@ Click ‘Next’
 
 * S3 bucket URI: s3://<S3 Bucket Name>/models/packaged/
 
-![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png)
+![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png.png)
 
 Click ‘Submit’. The packaging job will take approximately 2-3 minutes. When it is done the Status will change to ‘COMPLETED’
 
