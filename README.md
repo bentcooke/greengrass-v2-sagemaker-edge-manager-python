@@ -1,138 +1,474 @@
-## greengrass-v2-sagemaker-edge-manager-python
+# AWS IoT Greengrass V2 and Amazon SageMaker Edge Manager
 
-This code sample demonstrates how to integrate SageMaker Edge Manager with Greengrass v2 via components. At the end of the sample, you will have a Python-based component running inference at the edge with the SageMaker Edge Manager binary agent, and a YOLOv3 Darknet model.
+[Image: Screen Shot 2021-04-07 at 10.12.14 AM.png]This workshop walks you through the end to end flow of training an Image Classification model on Amazon SageMaker to deploying that model and an application to an NXP i.MX8MQEVK device. Results are uploaded to AWS IoT and input and output tensors are uploaded to Amazon S3.
 
-### AWS CLI setup
+This is an advanced workshop intended for those already familiar with basic AWS IoT Greengrass and AWS Cloud concepts.
 
-Ensure you have AWS CLI installed, a IAM user with an access key, and a named profile configured:
+## **Preparation:**
 
-* [Installing, updating, and uninstalling the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
-* [Configuration basics](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
-* [Named profiles](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+**IT IS RECOMMENDED TO RUN THIS WORKSHOP IN us-west-2 REGION.**
 
-### Define key variables
-> NOTE: In this demo, we are using a NVIDIA Xavier NX / AGX Xavier development kit. Please adjust PLATFORM as required for your device.
+You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in[https://github.com/aws/meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass)/recipes-iot/aws-iot-greengrass to include the Greengrass V2 software with your [i.MX Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). You will also need to build in the AWS IoT Device Python SDKv2.
+[Image: Screen Shot 2021-04-06 at 4.23.40 PM.png]
+**Requirements:**
 
-Valid PLATFORM options include linux-armv8, linux-x64, windows-x86, and windows-x64.
+* i.MX8MQEVK or [MCIMX8M-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-applications-processor:MCIMX8M-EVK)-with [AWS IoT Greengrass V2](https://docs.aws.amazon.com/greengrass/v2/developerguide/install-greengrass-core-v2.html) installed
+    * You can use [NXP’s Yocto User Guide](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf) and [meta-aws](https://github.com/aws/meta-aws/tree/master/recipes-iot/aws-iot-greengrass) to build this image. (coming in a future workshop!)
+* Python 3.x and the following Pip modules:
+    * opencv-python-headless
+    * awsiotsdk
+    * numpy
+    * grpcio-tools
+    * protobuf
+    * grpcio
+    * You can install them with this command:
+    * pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk
+* A certificate and private key provisioned to your device.
+* Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
+* Host machine with a Unix terminal (Linux or Mac OS)
+* [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) installed and configured on host machine
 
-Valid TARGET_DEVICE options can be found here: [Supported edge devices for SageMaker Neo](https://docs.aws.amazon.com/sagemaker/latest/dg/neo-supported-devices-edge.html).
-```console
-export AWS_PROFILE=<PROFILE-NAME>
-export AWS_REGION=<REGION>
-export PLATFORM=linux-armv8
-export TARGET_DEVICE=jetson_xavier
-export SSH_USER=<USER>
-export SSH_HOST=<IP_ADDRESS>
-export IOT_THING_NAME=<THING_NAME>
-export BUCKET_NAME=<BUCKET_NAME>
+## **Clone the Example**
+
+```
+git clone https://github.com/dhwalters423/greengrass-v2-sagemaker-edge-manager-python
 ```
 
-### Allow executions of scripts
-```console
-chmod +x ./scripts/*.sh
+Component stubs are in the components/ directory.
+
+## **Create an IoT Role Alias for SageMaker Edge Manager**
+
+The SageMaker Edge Manager Agent on the device will need to access resources in the Cloud. It uses the AWS IoT Credential Provider Role Alias to perform actions.
+
+First, we will create the Role in IAM.
+
+Navigate to **AWS IAM Console → Roles → Create role**
+
+**Select type of trusted entity → AWS service**
+Choose **IoT** and under **‘Select your use case’** choose **IoT.**
+
+Click on **‘Next: Permissions’, ‘Next: Tags’, ‘Next': Review'.**
+
+* Role name: SageMaker-IoTRole
+
+Click on ‘**Create role**’
+
+Once the role is created, we need to attach policies and authorize the IoT Credential Provider to access it.
+
+Choose your created role from the list of IAM roles. Click on **‘Attach Policies’** and attach the following policies:
+
+* AmazonSageMakerEdgeDeviceFleetPolicy
+* AmazonS3FullAccess
+
+Click on **‘Trust relationships’ → ‘Edit trust relationship’**
+
+. Add the following to the Policy Document and click on ''**Update Trust Policy'**:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "credentials.iot.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "sagemaker.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
 ```
 
-### Make S3 bucket for your custom components
-```console
-aws s3 mb s3://$BUCKET_NAME --profile $AWS_PROFILE --region $AWS_REGION
+Copy the **Role ARN** for use in the next steps when you create the Edge Manager device fleet.
+
+## **Setup S3 bucket for Inference Results**
+
+Edge Manager will upload inference results to this Amazon S3 Bucket. 
+
+Amazon S3 bucket names need to be globally unique, so create a unique identifier to prepend the name of your S3 bucket and replace <unique-uuid> in the command below with this identifier. Replace <REGION> with the region in which your AWS IoT Greengrass device is connected.
+
+```
+aws s3 mb s3://<unique-uuid>-inference-results --region <REGION>
 ```
 
-### Download/upload Darknet sample model
-```console
-./scripts/download_upload_sample_model.sh $AWS_PROFILE $BUCKET_NAME
+## **Create the Edge Manager Device Fleet**
+
+Navigate to **Amazon Sagemaker Console →** **Edge Manager → Edge device fleets → Create device fleet**
+
+* Device fleet name: greengrassv2fleet
+* IAM Role: The ARN of the IAM Role modified in the previous step. It is the same one that is linked to your IoT Role Alias. 
+
+[Image: Screen Shot 2021-04-06 at 5.14.41 PM.png]Click ‘Next’.
+
+* S3 bucket URI: s3://<your-inference-bucket-name>/inference-results
+
+[Image: Screen Shot 2021-04-06 at 5.25.30 PM.png]Click ‘Submit’ to finish creating the Edge Manager Fleet.
+
+Creating an Edge Manager fleet will also create a Role Alias in AWS IoT. 
+
+Navigate to **AWS IoT Console → Secure → Role Aliases**
+
+You will see a role named SageMakerEdge-greengrassv2fleet with your IAM role attached.
+
+## **Add your AWS IoT Greengrass Core Device to the Edge Manager Fleet**
+
+Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → Register devices**
+
+* Device fleet name: GreengrassV2Fleet (the name of your fleet)
+
+[Image: Screen Shot 2021-04-06 at 5.28.24 PM.png]Click ‘Next’
+
+* Device Name: sagemaker-ggv2-smem-device-012345678
+* IoT Name: The name of your AWS IoT Core Greengrass Core Thing Name
+
+[Image: Screen Shot 2021-04-07 at 2.07.45 PM.png]Click ‘Submit’
+
+## **Setup S3 Bucket for Greengrass Component Resources**
+
+Artifacts that will be deployed to the Greengrass device, such as scripts, need to be stored in an Amazon S3 bucket where the device will download them during a Greengrass deployment.
+
+```
+aws s3 mb s3://<unique-uuid>-gg-components --region <REGION>
 ```
 
-### Create SageMaker Execution Role
-```console
-export SM_ROLE_NAME=smem-role
-./scripts/create_sagemaker_role.sh $AWS_PROFILE $SM_ROLE_NAME
+## **Create the Edge Manager Agent Greengrass Component**
+
+The Edge Manager Agent Greengrass component will deploy the Edge Manager Agent binary to your device.
+
+First we need to download the pre-built Edge Manager Agent binary for the target architecture of the device. The i.MX8MQEVK uses the Armv8 chip architecture.
+
+Get the latest release of the Edge Manager Agent:
+
+```
+`aws s3 ls s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/ | sort -r`
 ```
 
-### Compile model with SageMaker Neo
-```console
-./scripts/create_neo_compilation_job.sh $AWS_PROFILE $BUCKET_NAME $AWS_REGION $SM_ROLE_NAME
+The releases are timestamped. Download the latest version and include the binary in the components/artifacts/aws.sagemaker.edgeManager/0.1.0 directory.
+
+```
+`mkdir edge_manager_agent`
+`cd edge_manager_agent`
+`aws s3 cp s3``:``//sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/``<VERSION>``/``<VERSION>``.tgz .
+aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/sha256_hex.shasum .`
+`tar zxvf ``<``VERSION``>.``tgz`
+`mv bin``/``sagemaker_edge_agent_binary ``../``components``/``artifacts``/``aws``.``sagemaker``.``edgeManager``/``0.1``.``0`
 ```
 
-### Package Neo model in SageMaker Edge Manager
-```console
-./scripts/package_neo_model.sh $AWS_PROFILE $BUCKET_NAME $AWS_REGION $SM_ROLE_NAME
+Yo will also need to download a Root Certificate which is used to verify that the model was signed in the region it has been created. Replace <REGION> with the region in which your Greengrass device is deployed:
+
+```
+`aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Certificates/<REGION>/<REGION>.pem .
+mv <REGION>.pem ../components/artifacts/aws.sagemaker.edgeManager/0.1.0`
 ```
 
-### Download, install, provision, and start Greengrass v2
-> NOTE: this is done over SSH to avoid installing AWS CLI and credentials directly on the device.
-```console
-./scripts/install-ggv2-ssh.sh $AWS_PROFILE $SSH_USER $SSH_HOST $AWS_REGION $IOT_THING_NAME
+Open the file components/recipes/aws.sagemaker.edgeManager-0.1.0.yaml. Replace ‘<YOUR_BUCKET_NAME>’ under ‘Artifacts’ with the gg-components bucket created earlier to store your Greengrass components. Replace ‘<REGION>’ with the region name in which you are deploying your edge device (the name of the root certificate .pem file downloaded previously) . Leave the DefaultConfiguration parameters alone, they can be configured from the AWS Cloud.
+
+First, upload the artifacts to your gg-components Amazon S3 bucket:
+
+```
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/<REGION>.pem --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/<REGION>.pem
 ```
 
-### Download SageMaker Edge Manager archive
-```console
-./scripts/download_edge_manager_package.sh $AWS_PROFILE $PLATFORM    
+Next, create the AWS IoT Greengrass Component:
+
+Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
+
+Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/aws.sagemaker.edgeManager-0.1.0.yaml into the Recipe text box.
+[Image: Screen Shot 2021-04-07 at 9.54.20 AM.png]
+Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
+[Image: Screen Shot 2021-04-07 at 9.56.53 AM.png]
+## **Deploy the SageMaker Edge Manager Agent Greengrass component to the device**
+
+Next, we will deploy the Edge Manager Agent to the Greengrass device.
+
+Navigate to the **AWS IoT Console → Greengrass → Deployments → Create**
+
+* Name: ‘Deployment for ML using EM’
+* Deployment target: Choose either ‘Core device’ to deploy this to a single IoT Thing, or ‘Thing group’ to deploy it to all Greengrass Cores in a Thing Group. In a production environment, Thing Groups can be used to deploy components to a fleet of devices
+
+[Image: Screen Shot 2021-04-07 at 10.03.08 AM.png]Click ‘Next’, and then select the components you want to include in your Greengrass Deployment.
+
+My components:
+
+* aws.sagemaker.edgeManager - this is the component we built in the previous step.
+
+Public components:
+
+* aws.greengrass.TokenExchangeService - the Edge Manager component depends on this to access the Amazon S3 bucket.
+
+Click ‘Next’
+[Image: Screen Shot 2021-04-07 at 1.59.59 PM.png]aws.sagemaker.edgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
+
+```
+`{`
+`  ``"deviceName"``:`` ``"sagemaker-ggv2-smem-device-012345678"``,`
+`  ``"deviceFleetName"``:`` ``"greengrassv2fleet"``,`
+`  ``"bucketName"``:`` ``"INFERENCE_BUCKET"``,`
+`  ``"endpoint"``:`` ``"https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-aliases/<your_role_name>/credentials"``,`
+`  ``"caCertPath"``:`` ``"/greengrass/v2/auth/demo.cert.pem"``,`
+`  ``"privKeyPath"``:`` ``"/greengrass/v2/auth/demo.pkey.pem"``,`
+`  ``"certPath"``:`` ``"/greengrass/v2/auth/demo.cert.pem"`
+`}`
 ```
 
-### Add SageMaker Edge Manager agent binary to artifacts
-```console
-./scripts/add_agent_artifact.sh $AWS_PROFILE $PLATFORM 0.1.0 $AWS_REGION
+* deviceName is the name of your SageMaker Edge Device name created in the step ‘**Add your AWS IoT Greengrass Core Device to the Edge Manager Fleet’**
+* deviceFleetName is the name of your SageMaker Edge Device Fleet created in the step ‘**Create the Edge Manager Device Fleet’**
+* bucketName is the name of the S3 bucket created in the step ‘**Setup S3 bucket for Inference Results’**
+* endpoint is the path to your role alias. To obtain the Credential Provider endpoint, run the following:
+    * `aws iot describe-endpoint --endpoint-type iot:CredentialProvider`
+    * Append the endpoint with /role-alias/<your_role_name>/credentials, replace <your_role_name> with your IoT Alias created by the Edge Manager Fleet in step ‘**Create the Edge Manager Device Fleet’.** For example: SageMakerEdge-greengrassv2fleet.
+* caCertPath is the path to the AWS IoT root server certificate on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
+* privKeyPath is the path to the device’s private key on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
+* certPath is the path to the device certificate used to authenticate with AWS IoT on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
+
+[Image: Screen Shot 2021-04-07 at 2.17.07 PM.png]Once you have configured your Greengrass component, click ‘Confirm’. Then click ‘Next’. If you do not wish to configure any advanced settings, click ‘Next’ again. Review the deployment for any errors, then click on ‘Deploy’.
+
+Monitor the state of the deployment from the AWS IoT Greengrass console. You can also monitor the state of the deployment from the device by running:
+
+```
+tail -f /greengrass/v2/logs/greengrass.log
 ```
 
-### Compile and add SageMaker Edge Manager Python client stubs to artifacts
-```console
-pip install grpcio-tools
+The output of the Greengrass log should contain lines similar to the following:
+
+```
+2021-04-07T21:05:41.142Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-start. {componentIdentifier=aws.sagemaker.edgeManager-v0.1.0}
+2021-04-07T21:05:41.157Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-finish. {componentIdentifier=aws.sagemaker.edgeManager-v0.1.0}
+2021-04-07T21:05:44.580Z [INFO] (pool-2-thread-12) com.aws.greengrass.deployment.DeploymentService: Current deployment finished. {DeploymentId=be1736e2-cb47-4a6a-a561-5e089dd4822f, serviceName=DeploymentService, currentState=RUNNING}
+2021-04-07T21:05:44.663Z [INFO] (pool-2-thread-12) com.aws.greengrass.deployment.IotJobsHelper: Updating status of persisted deployment. {Status=SUCCEEDED, StatusDetails={detailed-deployment-status=SUCCESSFUL}, ThingName=iMX8MQEVK_GG_Core_001, JobId=be1736e2-cb47-4a6a-a561-5e089dd4822f}
+2021-04-07T21:05:49.410Z [INFO] (Thread-4) com.aws.greengrass.deployment.IotJobsHelper: Job status update was accepted. {Status=SUCCEEDED, ThingName=iMX8MQEVK_GG_Core_001, JobId=be1736e2-cb47-4a6a-a561-5e089dd4822f}
+2021-04-07T21:05:49.849Z [INFO] (pool-2-thread-12) com.aws.greengrass.status.FleetStatusService: fss-status-update-published. Status update published to FSS. {serviceName=FleetStatusService, currentState=RUNNING}
+```
+
+To check if the Edge Manager Agent was successfully deployed, tail the component log:
+
+```
+tail -f /greengrass/v2/logs/aws.sagemaker.edgeManager.log
+```
+
+You should see the Edge Manager Agent parse the configuration file and open up a socket on the device.
+
+```
+2021-04-07T21:05:43.245Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. Server listening on unix:///tmp/sagemaker_edge_agent_example.sock. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+```
+
+This socket is used by the Edge Manager Agent to send and receive requests using GRPC. Additional Greengrass v2 components developed to talk to the Edge Manager Agent should utilize this socket to load ML models and request predictions by that model.
+
+## Train MXNet model on Jupyter Notebook
+
+We will use a Jupiter Notebook to train an image classification MXNet model. In this step, if you would like to train your own model you can use managed Jupyter Notebook instances to run your algorithms. See [Amazon SageMaker examples](https://github.com/aws/amazon-sagemaker-examples/) for numerous examples of Notebooks for model training.
+
+Open the **Amazon SageMaker console** **→ Notebook → Notebook instances → Create notebook instance**
+
+
+* Notebook instance name: EdgeTrainingInstance
+* Notebook instance type: ml.t2.medium
+* IAM Role: ‘Create a new role’, leave the default settings, and click ‘Create role’.
+
+Open the Jupyter Notebook instance. 
+
+Upload the file ‘image-classification-fulltraining-highlevel.ipynb’ and open it.
+
+Follow the steps carefully in the Jupyter Notebook by pressing the Run button. Be sure to wait for each step to complete before proceeding to the next step. 
+
+At the end of your training job, you should see an output similar to the following:
+[Image: Screen Shot 2021-04-29 at 4.36.07 PM.png]Once you have completed training your model, hover over ‘Kernel’ at the top of the Jupyter Notebook and ‘Shutdown’ .
+
+Your model will be stored in Amazon S3 bucket that you specified in the Jupyter notebook. The folder structure should be similar to the following:
+<your-bucket>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz
+
+## Compile the MXNet model using SageMaker Neo
+
+Next, we will compile the model to optimize and take advantage of the architecture and hardware acceleration of the device on the edge. SageMaker Neo utilizes the Apache TVM open source compiler for CPU, GPU, and NPU machine learning accelerators.
+
+Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → Create compilation job**
+
+* Job settings:
+    * Job name: imx8qm-image-classification-001
+    * IAM Role: Create a new role
+        * S3 buckets you specify: Any S3 Bucket
+        * Click on ‘Create role’
+* Input configuration:
+    * Location of model artifacts: s3://<S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz
+        * This is the location of the uncompiled model trained in step **‘Train MXNet model on Jupyter Notebook’**
+    * Data input configuration: {"data":[1, 3, 224, 224]}
+    * Machine learning framework: MXNet
+
+[Image: Screen Shot 2021-04-29 at 4.58.39 PM.png]
+
+* Output configuration
+    * Target device
+    * Target device: imx8qm
+    * S3 Output location: s3://<S3 Bucket Name>/models/compiled
+
+Click on ‘Submit’. The compilation job will take 2-3 minutes. When it is finished, the Status will change to ‘COMPLETED’
+
+Open the compilation job and note the S3 compiled model artifact S3 URI.
+[Image: Screen Shot 2021-04-29 at 4.58.04 PM.png]Check that the compiled model is in the specified Amazon S3 bucket.
+
+[Image: Screen Shot 2021-04-29 at 9.07.40 PM.png]
+## Package the compiled model for Edge Manager
+
+Next we will prepare the model to integrate with the Edge Manager Agent. The packaging job will sign the model’s hash so that the device can verify it’s integrity.
+
+Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job → Create Edge packaging job**
+
+* Edge packaging job name: imx1qm-image-classification-packaging-001
+* Model name: mxnetclassifier
+* Model version: 1.0
+* IAM role:
+    * Create a new role
+    * Any S3 bucket
+    * Create Role
+
+[Image: Screen Shot 2021-04-29 at 5.00.28 PM.png]
+Click ‘Next’
+
+* Compilation job name:  imx8qm-image-classification-001 (this is the name of the compilation job from the Neo compilation job)
+
+Click ‘Next’
+
+* S3 bucket URI: s3://<S3 Bucket Name>/models/packaged/
+
+[Image: Screen Shot 2021-04-08 at 11.36.02 AM.png]Click ‘Submit’. The packaging job will take approximately 2-3 minutes. When it is done the Status will change to ‘COMPLETED’
+
+Check that the packaged model is present in the Amazon S3 output location provided above:
+[Image: Screen Shot 2021-04-29 at 5.04.49 PM.png]
+## Create the Greengrass component for the model
+
+Open the file ‘com.model.image.classifier-0.1.0.yaml’. Under ‘Artifacts’, change the URI for your packaged model to the S3 URI created in the previous step. You can change YOUR_BUCKET_NAME to the correct S3 bucket where your packaged model is stored on Amazon S3.
+
+Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
+
+Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/com.model.image.classifier-0.1.0.yaml into the Recipe text box.
+
+Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
+
+## Create the Greengrass component for the application
+
+The application is what implements the Edge Manager Agent client, as well as do any pre-processing and post-processing of the inference results.
+
+The Edge Manager Agent uses Protobuf and GRPC to communicate. The application needs to communicate with the Edge Manager Agent over GRPC and needs to implement the correct Protobuf calls. 
+
+First we will install the necessary tools on the host machine:
+
+```
+pip install grpcio-tools numpy protobuf grpcio opencv-python
 pip install --upgrade protobuf
-./scripts/compile_add_python_stub_artifacts.sh $PLATFORM aws.sagemaker.edgeManagerPythonClient 0.1.0
 ```
 
-### Create device fleet in SageMaker Edge Manager, and add device to fleet
-```console
-./scripts/create_device_fleet_register_device.sh $AWS_PROFILE $AWS_REGION $BUCKET_NAME $IOT_THING_NAME
+Next we will create the GRPC data model in Python:
+
+```
+python -m grpc_tools.protoc -I =<path/to/edge-manager-package folder>/docs/api/ \
+ --python_out=components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/ \
+ --grpc_python_out=components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0 agent.proto
 ```
 
-### Update recipes
-* In all of the recipe files, replace **YOUR_BUCKET_NAME** with the value assigned to $BUCKET_NAME
-* Run the following to get your AWS account number
-```console
-aws sts get-caller-identity --profile $AWS_PROFILE | jq -r '.Account'
-```
-* In components/recipe/aws.sagemaker.edgeManager-0.1.0.yaml, update the endpoint with your Role Alias Credential Provider endpoint:
+Replace <path/to/edge-manager-package folder> with the path to the edge-manager-package folder that contains the contents of the Edge Manager Agent .tgz file downloaded in the previous step. The API folder contains the Protobuf specification for communicating with the Agent.
 
-Retrieve the credential provider endpoint:
-```
-aws iot describe-endpoint --endpoint-type iot:CredentialProvider --region $AWS_REGION
-```
+Ensure that the ‘agent_pb2_grpc.py’ and ‘agent_pb2.py’ artifacts were created in the components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0 folder.
 
-```yaml
-endpoint: <CredentialProviderEndpoint>/role-aliases/SageMakerEdge-ggv2-smem-fleet/credentials
-```
+Review the code in the edge_manager_python_client.py script. Note the lifecycle of the model. Ensure model_url points to the name of the Greengrass component containing the Image classification model. Check the model_name and ensure it is the same as the name given in the Edge Manager packaging job.
 
-* In components/recipe/aws.sagemaker.edgeManager-0.1.0.yaml, update the URI with your region:
-```yaml
-- URI: s3://YOUR_BUCKET_NAME/artifacts/aws.sagemaker.edgeManager/0.1.0/<AWS_REGION>.pem
-```
+The application first loads the Image classification model. Next, it selects a random image of a dog, tomato, frog, or a rainbow for the model to run a prediction. It receives the results of the inference, gets the highest confidence level return. It publishes that data to AWS IoT Core, and then triggers the Edge Manager Agent to capture the results in Amazon S3.
 
-### Upload your custom components to S3 bucket
-```console
-./scripts/upload_component_version.sh $AWS_PROFILE com.model.darknet 0.1.0 $BUCKET_NAME $AWS_REGION
-./scripts/upload_component_version.sh $AWS_PROFILE aws.sagemaker.edgeManager 0.1.0 $BUCKET_NAME $AWS_REGION 
-./scripts/upload_component_version.sh $AWS_PROFILE aws.sagemaker.edgeManagerPythonClient 0.1.0 $BUCKET_NAME $AWS_REGION
+The following four images are used in the inference:
+[Image: rainbow.jpeg]
+[Image: dog.jpeg][Image: tomato.jpeg]
+[Image: frog.jpeg]
+Upload the GRPC client, Python application, and sample images to S3:
+
+```
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2.py --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2.py
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/dog.jpeg --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/dog.jpeg
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rainbow.jpeg --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rainbow.jpeg
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/tomato.jpeg --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/tomato.jpeg
+aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg
 ```
 
-> NOTE: you cannot overwrite an existing component version. To upload a new version, you will need to update the version number in the artifact directory, the recipe file name, and the version numbers in the recipe file.
-> As an alternative, you can also delete a specific component version. For this, use the following command:
-```console
-./delete_component.sh $AWS_PROFILE <COMPONENT-NAME> <COMPONENT-VERSION> $AWS_REGION
+Open the file components/recipes/aws.sagemakerEdgeManagerPythonClient-0.1.0.yaml. Change the URIs under ‘Artifacts’ to include the correct S3 bucket name where you uploaded the artifacts. You can change <YOUR BUCKET NAME> to the name of your Greengrass component bucket.
+
+Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
+
+Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/aws.sagemakerEdgeManagerPythonClient-0.1.0.yaml into the Recipe text box.
+
+Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
+
+[Image: Screen Shot 2021-04-29 at 9.06.34 PM.png]
+## Deploy Model and Application Components to the Edge
+
+Navigate to the **AWS IoT Console → Greengrass → Deployments**
+
+Click the checkmark box next to the previously created deployment ‘Deployment for ML using EM’ and then click on ‘Revise’.
+
+Click ‘Next’ and on the ‘Select components’ menu, turn off the option ‘Show only selected components’ for ‘My components’. 
+
+Select ‘com.model.image-classifier’ and ‘aws.sagemaker.edgeManagerPythonClient’.
+
+[Image: Screen Shot 2021-04-29 at 9.22.32 PM.png]Click ‘Next’, leave the default configuration for each component, then click ‘Next’. Leave the advanced settings as defaults and then click ‘Next’ again.
+
+Review the deployment, then when you are ready to deploy the components to the device click on ‘Deploy’. 
+
+Wait 2-3 minutes and then check that your Greengrass Core device is HEALTHY from the AWS IoT Greengrass console:
+
+[Image: Screen Shot 2021-04-29 at 10.46.05 PM.png]
+To check if the application was successfully deployed, tail the component log on the device:
+
+```
+tail -f /greengrass/v2/logs/aws.sagemaker.edgeManager.log
 ```
 
-### Update your Greengrass v2 deployment
+If the LoadModel request from the application was successful, the Edge Manager Agent log will show the meta data about the machine learning model:
 
-Create a new Greengrass v2 deployment, including the following components:
-* com.model.darknet v0.1.0
-* aws.sagemaker.edgeManager v0.1.0
-* aws.sagemaker.edgeManagerPythonClient v0.1.0
+```
+2021-04-09T01:02:16.206Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.205][I] Model will run on CPU. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-04-09T01:02:16.349Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] backend name is tvm. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-04-09T01:02:16.350Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] DLR backend = kTVM. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-04-09T01:02:16.350Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] Finished populating metadata. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-04-09T01:02:16.351Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] Model:mxnetclassifier loaded!. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+```
 
-## Security
+## Get the Inference Results
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+Inference results should be published to AWS IoT Core and to Amazon S3. 
 
-## License
+To check the inference results arriving in AWS IoT Core, Navigate to the **AWS IoT Console → Test →** **** **MQTT test client.**
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+Under ‘Subscribe to a topic’, type in ‘em/inference’. Every 30 seconds, inference results should arrive on the ‘em/inference’ topic with the result and confidence level.
 
+
+[Image: Screen Shot 2021-04-29 at 10.44.56 PM.png]
+To check the inference results meta data, input and output tensors from Amazon S3,Navigate to the **Amazon S3 console → <your-inference-bucket-name>.**
+
+In this S3 bucket, the following folder hierarchy should be present:
+
+* ‘inference-results’ ( you specified in your Edge Manager Greengrass component configuration and Edge Manager device setup)
+    * greengrassv2fleet ( name of your Edge Manager Device Fleet)
+        * mxnetclassifier (name of your model from the Edge Manager packaging job)
+            * year
+                * month
+                    * day
+                        * hour
+
+Inside the ‘hour’ folder there will be .jsonl objects. These .jsonl files contain meta-data about each inference prediction and result. In the raw-data/input-tensors and output-tensors folders is additional data including the input data shape and output predictions.
+
+[Image: Screen Shot 2021-04-29 at 10.47.33 PM.png]
+## Check the operating status of your device fleet
+
+Edge Manager device fleets let you see the operation status of your devices and the models deployed to those devices. From the console, you can see which models are deployed to a device, their version, and the latest heartbeat and inference result.
+
+Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → <your EM edge device>**
+
+[Image: Screen Shot 2021-04-29 at 10.49.32 PM.png]
