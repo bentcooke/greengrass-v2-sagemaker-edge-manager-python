@@ -176,7 +176,7 @@ aws.greengrass.SageMakerEdgeManager component needs to be configured. Select the
 {
   "CaptureDataPeriodicUpload": "false",
   "CaptureDataPeriodicUploadPeriodSeconds": "8",
-  "DeviceFleetName": "",
+  "DeviceFleetName": "<your device fleet name>",
   "BucketName": "<unique-uuid>-inference-results",
   "CaptureDataBase64EmbedLimit": "3072",
   "CaptureDataPushPeriodSeconds": "4",
