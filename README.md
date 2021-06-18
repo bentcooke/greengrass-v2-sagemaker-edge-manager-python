@@ -189,6 +189,7 @@ aws.greengrass.SageMakerEdgeManager component needs to be configured. Select the
 }
 ```
 
+* **DeviceFleetName** is the name of your Edge Manager Device Fleet name created in the step Create the Edge Manager Device Fleet
 * **BucketName** is where your inference results will be uploaded to. This is the bucket you created in the step Setup S3 bucket for Inference Results.
 * **UnixSocketName** is the name of the socket in which other Greengrass compoenents can communicate with the Edge Manager Agent. Ensure it is set to ``/tmp/sagemaker_edge_agent_example.sock``.
    
