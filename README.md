@@ -148,58 +148,6 @@ Artifacts that will be deployed to the Greengrass device, such as scripts, need 
 aws s3 mb s3://<unique-uuid>-gg-components --region <REGION>
 ```
 
-## **Create the Edge Manager Agent Greengrass Component**
-
-The Edge Manager Agent Greengrass component will deploy the Edge Manager Agent binary to your device.
-
-First we need to download the pre-built Edge Manager Agent binary for the target architecture of the device. The i.MX8MQEVK uses the Armv8 chip architecture.
-
-Get the latest release of the Edge Manager Agent:
-
-```
-aws s3 ls s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/ | sort -r
-```
-
-The releases are timestamped. Download the latest version and include the binary in the components/artifacts/aws.sagemaker.edgeManager/0.1.0 directory.
-
-```
-mkdir edge_manager_agent
-cd edge_manager_agent
-aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/<VERSION>.tgz .
-aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Releases/<VERSION>/sha256_hex.shasum .
-tar zxvf <VERSION>.tgz
-mv bin/sagemaker_edge_agent_binary ../components/artifacts/aws.sagemaker.edgeManager/0.1.0
-```
-
-You will also need to download a Root Certificate which is used to verify that the model was signed in the region it has been created. Replace <REGION> with the region in which your Greengrass device is deployed:
-
-```
-aws s3 cp s3://sagemaker-edge-release-store-us-west-2-linux-armv8/Certificates/<REGION>/<REGION>.pem .
-mv <REGION>.pem ../components/artifacts/aws.sagemaker.edgeManager/0.1.0
-```
-
-Open the file components/recipes/aws.sagemaker.edgeManager-0.1.0.yaml. Replace ‘<YOUR_BUCKET_NAME>’ under ‘Artifacts’ with the gg-components bucket created earlier to store your Greengrass components. Replace ``<REGION>`` with the region name in which you are deploying your edge device (the name of the root certificate .pem file downloaded previously) . Leave the DefaultConfiguration parameters alone, they can be configured from the AWS Cloud.
-
-First, upload the artifacts to your gg-components Amazon S3 bucket:
-
-```
-aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_agent_binary
-aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/sagemaker_edge_config.json
-aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManager/0.1.0/<REGION>.pem --body components/artifacts/aws.sagemaker.edgeManager/0.1.0/<REGION>.pem
-```
-
-Next, create the AWS IoT Greengrass Component:
-
-Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
-
-Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/aws.sagemaker.edgeManager-0.1.0.yaml into the Recipe text box.
-
-![Create EM Recipe](images/createemrecipe.png)
-
-Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
-
-![Create EM Recipe](images/deployableemcomponent.png)
-
 ## **Deploy the SageMaker Edge Manager Agent Greengrass component to the device**
 
 Next, we will deploy the Edge Manager Agent to the Greengrass device.
@@ -213,41 +161,38 @@ Navigate to the **AWS IoT Console → Greengrass → Deployments → Create**
 
 Click ‘Next’, and then select the components you want to include in your Greengrass Deployment.
 
-My components:
-
-* aws.sagemaker.edgeManager - this is the component we built in the previous step.
-
 Public components:
 
 * aws.greengrass.TokenExchangeService - the Edge Manager component depends on this to access the Amazon S3 bucket.
-
+* aws.greengrass.SageMakerEdgeManager - this component deploys the SageMaker Edge Manager Agent component
+   
 Click ‘Next’
 
 ![Configure component](images/configureemcomponent.png)
 
-aws.sagemaker.edgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
+aws.greengrass.SageMakerEdgeManager component needs to be configured. Select the component and then click on ‘Configure Component’. In the ‘Configuration update’ field, input the following and change the values to match your environment and setup:
 
 ```
 {
-  "deviceName": "sagemaker-ggv2-smem-device-012345678",
-  "deviceFleetName": "greengrassv2fleet",
-  "bucketName": "INFERENCE_BUCKET",
-  "endpoint": "https://<uniqueid>.credentials.iot.<region>.amazonaws.com/role-aliases/<your_role_name>/credentials",
-  "caCertPath": "/greengrass/v2/auth/demo.cert.pem",
-  "privKeyPath":"/greengrass/v2/auth/demo.pkey.pem",
-  "certPath": "/greengrass/v2/auth/demo.cert.pem"
+  "CaptureDataPeriodicUpload": "false",
+  "CaptureDataPeriodicUploadPeriodSeconds": "8",
+  "DeviceFleetName": "",
+  "BucketName": "<unique-uuid>-inference-results",
+  "CaptureDataBase64EmbedLimit": "3072",
+  "CaptureDataPushPeriodSeconds": "4",
+  "SagemakerEdgeLogVerbose": "false",
+  "CaptureDataBatchSize": "10",
+  "CaptureDataDestination": "Cloud",
+  "FolderPrefix": "sme-capture",
+  "UnixSocketName": "/tmp/sagemaker_edge_agent_example.sock",
+  "CaptureDataBufferSize": "30"
 }
 ```
 
-* deviceName is the name of your SageMaker Edge Device name created in the step ‘**Add your AWS IoT Greengrass Core Device to the Edge Manager Fleet’**
-* deviceFleetName is the name of your SageMaker Edge Device Fleet created in the step ‘**Create the Edge Manager Device Fleet’**
-* bucketName is the name of the S3 bucket created in the step ‘**Setup S3 bucket for Inference Results’**
-* endpoint is the path to your role alias. To obtain the Credential Provider endpoint, run the following:
-    * `aws iot describe-endpoint --endpoint-type iot:CredentialProvider`
-    * Append the endpoint with /role-alias/<your_role_name>/credentials, replace <your_role_name> with your IoT Alias created by the Edge Manager Fleet in step ‘**Create the Edge Manager Device Fleet’.** For example: SageMakerEdge-greengrassv2fleet.
-* caCertPath is the path to the AWS IoT root server certificate on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
-* privKeyPath is the path to the device’s private key on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
-* certPath is the path to the device certificate used to authenticate with AWS IoT on your device. It’s defaulted to the path that meta-aws Greengrass v2 recipe provides.
+* **BucketName** is where your inference results will be uploaded to. This is the bucket you created in the step Setup S3 bucket for Inference Results.
+* **UnixSocketName** is the name of the socket in which other Greengrass compoenents can communicate with the Edge Manager Agent. Ensure it is set to ``/tmp/sagemaker_edge_agent_example.sock``.
+   
+For a full list of SageMaker Edge Manager Agent Component configuration parameters, [see the documentation.](https://docs.aws.amazon.com/greengrass/v2/developerguide/sagemaker-edge-manager-component.html)
 
 ![Configured component](images/emconfiguration.png)
 
@@ -273,7 +218,7 @@ The output of the Greengrass log should contain lines similar to the following:
 To check if the Edge Manager Agent was successfully deployed, tail the component log:
 
 ```
-tail -f /greengrass/v2/logs/aws.sagemaker.edgeManager.log
+tail -f /greengrass/v2/logs/aws.greengrass.SageMakerEdgeManager
 ```
 
 You should see the Edge Manager Agent parse the configuration file and open up a socket on the device.
