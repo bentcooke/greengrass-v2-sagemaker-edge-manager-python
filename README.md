@@ -94,10 +94,10 @@ Copy the **Role ARN** for use in the next steps when you create the Edge Manager
 
 Edge Manager will upload inference results to this Amazon S3 Bucket. 
 
-Amazon S3 bucket names need to be globally unique, so create a unique identifier to prepend the name of your S3 bucket and replace <unique-uuid> in the command below with this identifier. Replace <REGION> with the region in which your AWS IoT Greengrass device is connected.
+Amazon S3 bucket names need to be globally unique, so create a unique identifier to prepend the name of your S3 bucket and replace <unique-uuid> in the command below with this identifier. Replace <REGION> with the region in which your AWS IoT Greengrass device is connected. The string `sagemaker` must also be present in the bucket name.
 
 ```
-aws s3 mb s3://<unique-uuid>-inference-results --region <REGION>
+aws s3 mb s3://<unique-uuid>-sagemaker-inference-results --region <REGION>
 ```
 
 ## **Create the Edge Manager Device Fleet**
