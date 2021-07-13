@@ -112,7 +112,7 @@ Navigate to **Amazon Sagemaker Console →** **Edge Manager → Edge device flee
 
 Click ‘Next’.
 
-* S3 bucket URI: ``s3://<your-inference-bucket-name>/inference-results``
+* S3 bucket URI: ``s3://<your-inference-bucket-name>/sme-capture``
 
 ![Create Device Fleet](images/emdevicefleet2.png)
 
