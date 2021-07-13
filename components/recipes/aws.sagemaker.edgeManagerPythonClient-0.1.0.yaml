@@ -28,10 +28,10 @@ Manifests:
   - Platform:
       os: linux
       architecture: aarch64
-    Lifecycle:
-      run:
-        script: |-
-          sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}
+  Lifecycle:
+    run:
+      script: "sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}"
+      RequiresPrivilege: true
     Artifacts:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
         Permission:
