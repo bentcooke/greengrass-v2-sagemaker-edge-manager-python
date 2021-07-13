@@ -18,7 +18,7 @@ from awsiot.greengrasscoreipc.model import (
     PublishToIoTCoreRequest
 )
 
-model_url = '/greengrass/v2/work/com.model.image-classifier'
+model_url = '/greengrass/v2/work/SMEM-Image-Classification-Model'
 model_name = 'mxnetclassifier'
 tensor_name = 'data'
 SIZE = 224
