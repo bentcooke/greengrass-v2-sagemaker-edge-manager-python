@@ -18,11 +18,11 @@ ComponentDependencies:
   aws.greengrass.TokenExchangeService:
     VersionRequirement: '>=0.0.0'
     DependencyType: HARD
-  aws.sagemaker.edgeManager:
-    VersionRequirement: '~0.1.0'
+  aws.greengrass.SageMakerEdgeManager:
+    VersionRequirement: '>=1.0.0'
     DependencyType: HARD
-  com.model.image-classifier:
-    VersionRequirement: '~0.1.0'
+  SMEM-Image-Classification-Model:
+    VersionRequirement: '>=0.0.0'
     DependencyType: HARD
 Manifests:
   - Platform:
