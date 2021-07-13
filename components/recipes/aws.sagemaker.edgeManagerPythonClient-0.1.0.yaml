@@ -15,14 +15,8 @@ ComponentConfiguration:
           resources:
             - "em/inference"
 ComponentDependencies:
-  aws.greengrass.TokenExchangeService:
-    VersionRequirement: '>=0.0.0'
-    DependencyType: HARD
   aws.greengrass.SageMakerEdgeManager:
     VersionRequirement: '>=1.0.0'
-    DependencyType: HARD
-  SMEM-Image-Classification-Model:
-    VersionRequirement: '>=0.0.0'
     DependencyType: HARD
 Manifests:
   - Platform:
