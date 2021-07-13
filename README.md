@@ -27,6 +27,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
     * * ``pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk``
 * A certificate and private key provisioned to your device.
 * Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
+* The Greengrass device has an IoT Thing Name that matches the regex: ^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$ due to SageMaker Edge Manager limitation
 * Host machine with a Unix terminal (Linux or Mac OS)
 * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) installed and configured on host machine
 
@@ -133,7 +134,7 @@ Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devic
 
 Click ‘Next’
 
-* Device Name: sagemaker-ggv2-smem-device-012345678
+* Device Name: The name of your AWS IoT Core Greengrass Core Thing Name (MUST MATCH regex: ^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$)
 * IoT Name: The name of your AWS IoT Core Greengrass Core Thing Name
 
 ![Register EM Device](images/registerdevice2.png)
