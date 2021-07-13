@@ -177,7 +177,7 @@ aws.greengrass.SageMakerEdgeManager component needs to be configured. Select the
   "CaptureDataPeriodicUpload": "false",
   "CaptureDataPeriodicUploadPeriodSeconds": "8",
   "DeviceFleetName": "<your device fleet name>",
-  "BucketName": "<unique-uuid>-inference-results",
+  "BucketName": "<your inference results bucket>",
   "CaptureDataBase64EmbedLimit": "3072",
   "CaptureDataPushPeriodSeconds": "4",
   "SagemakerEdgeLogVerbose": "false",
@@ -225,7 +225,7 @@ tail -f /greengrass/v2/logs/aws.greengrass.SageMakerEdgeManager
 You should see the Edge Manager Agent parse the configuration file and open up a socket on the device.
 
 ```
-2021-04-07T21:05:43.245Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. Server listening on unix:///tmp/sagemaker_edge_agent_example.sock. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-07-13T19:43:13.511Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. Server listening on unix:///tmp/sagemaker_edge_agent_example.sock. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
 ```
 
 This socket is used by the Edge Manager Agent to send and receive requests using GRPC. Additional Greengrass v2 components developed to talk to the Edge Manager Agent should utilize this socket to load ML models and request predictions by that model.
