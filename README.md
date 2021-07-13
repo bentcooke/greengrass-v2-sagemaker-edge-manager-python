@@ -380,7 +380,7 @@ aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sa
 aws s3api put-object --bucket <your-gg-components-bucket> --key artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg --body components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg
 ```
 
-Open the file components/recipes/aws.sagemakerEdgeManagerPythonClient-0.1.0.yaml. Change the URIs under ‘Artifacts’ to include the correct S3 bucket name where you uploaded the artifacts. You can change <YOUR BUCKET NAME> to the name of your Greengrass component bucket.
+Open the file ``components/recipes/aws.sagemakerEdgeManagerPythonClient-0.1.0.yaml``. Change the URIs under ‘Artifacts’ to include the correct S3 bucket name where you uploaded the artifacts. You should change <YOUR BUCKET NAME> to the name of your Greengrass component bucket. Check to ensure that the model component 'SMEM-Image-Classification-Model' is the correct name and version number of the component made in the Edge Manager Packaging Job.
 
 Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
 
