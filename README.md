@@ -23,7 +23,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
     * grpcio-tools
     * protobuf
     * grpcio
-    * You can install them with this command if they are not already installed om your device:
+    * You can install them with this command if they are not already installed on your device:
     * * ``pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk``
 * A certificate and private key provisioned to your device.
 * Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
