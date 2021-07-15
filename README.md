@@ -39,11 +39,19 @@ git clone https://github.com/dhwalters423/greengrass-v2-sagemaker-edge-manager-p
 
 Component stubs are in the components/ directory.
 
-## **Create an IoT Role Alias for SageMaker Edge Manager**
+## **Create or edit an IoT Role Alias for SageMaker Edge Manager**
 
-The SageMaker Edge Manager Agent on the device will need to access resources in the Cloud. It uses the AWS IoT Credential Provider Role Alias to perform actions.
+The SageMaker Edge Manager Agent on the device will need to access resources in the Cloud. It uses the AWS IoT Credential Provider Role Alias to perform actions. 
 
-First, we will create the Role in IAM.
+First, we will need to create or edit the Role in IAM. When you set up your AWS IoT Greengrass Core device, you may have already performed this step. 
+
+### **If you already set up a Role for your AWS IoT Greengrass device:**
+
+Navigate to **AWS IoT Core Console → Secure → Role Aliases --> your Role Alias --> Edit IAM Role**
+
+Go to **Setup permissions for the IAM Role**
+
+### **If you have not set up an IAM Role yet:**
 
 Navigate to **AWS IAM Console → Roles → Create role**
 
@@ -56,16 +64,18 @@ Click on **‘Next: Permissions’, ‘Next: Tags’, ‘Next': Review'.**
 
 Click on ‘**Create role**’
 
+### Setup permissions for the IAM Role
+
 Once the role is created, we need to attach policies and authorize the IoT Credential Provider to access it.
 
-Choose your created role from the list of IAM roles. Click on **‘Attach Policies’** and attach the following policies:
+Choose your created role from the list of IAM Roles. Click on **‘Attach Policies’** and attach the following policies:
 
 * AmazonSageMakerEdgeDeviceFleetPolicy
 * AmazonS3FullAccess
 
 Click on **‘Trust relationships’ → ‘Edit trust relationship’**
 
-. Add the following to the Policy Document and click on ''**Update Trust Policy'**:
+Add the following to the Policy Document and click on ''**Update Trust Policy'**:
 
 ```
 {
@@ -103,39 +113,38 @@ aws s3 mb s3://<unique-uuid>-sagemaker-inference-results --region <REGION>
 
 ## **Create the Edge Manager Device Fleet**
 
-Navigate to **Amazon Sagemaker Console →** **Edge Manager → Edge device fleets → Create device fleet**
+Navigate to **Amazon Sagemaker Console → Edge Manager → Edge device fleets → Create device fleet**
 
-* Device fleet name: greengrassv2fleet
-* IAM Role: The ARN of the IAM Role modified in the previous step. It is the same one that is linked to your IoT Role Alias. 
+**Device fleet properties:**
+* **Device fleet name:** greengrassv2fleet
+* **IAM Role:** The ARN of the IAM Role modified in the previous step. It is the same one that is linked to your IoT Role Alias. 
+* **Create IAM role alias:** If you do not already have an AWS IoT Role Alias for your Greengrass device, select this option to create it and attach the provided IAM Role.
 
 ![Create Device Fleet](images/emdevicefleet.png)
 
 Click ‘Next’.
 
-* S3 bucket URI: ``s3://<your-inference-bucket-name>/sme-capture``
-
-![Create Device Fleet](images/emdevicefleet2.png)
+**Output configuration:**
+* **S3 bucket URI**: ``s3://<your-inference-bucket-name>``
 
 Click ‘Submit’ to finish creating the Edge Manager Fleet.
 
-Creating an Edge Manager fleet will also create a Role Alias in AWS IoT. 
-
 Navigate to **AWS IoT Console → Secure → Role Aliases**
 
-You will see a role named SageMakerEdge-greengrassv2fleet with your IAM role attached.
+You will see a role named SageMakerEdge-greengrassv2fleet with your IAM role attached if you chose to create a new IoT Role Alias.
 
 ## **Add your AWS IoT Greengrass Core Device to the Edge Manager Fleet**
 
 Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → Register devices**
 
-* Device fleet name: GreengrassV2Fleet (the name of your fleet)
+**Device fleet name:** greengrassv2fleet (the name of your fleet)
 
 ![Register EM Device](images/registerdevice.png)
 
 Click ‘Next’
 
-* Device Name: The name of your AWS IoT Core Greengrass Core Thing Name (MUST MATCH regex: ^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$)
-* IoT Name: The name of your AWS IoT Core Greengrass Core Thing Name
+* **Device Name:** The name of your AWS IoT Core Greengrass Core Thing Name (MUST MATCH regex: ``^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$``)
+* **IoT Name:** The name of your AWS IoT Core Greengrass Core Thing Name (Should be the same as Device Name)
 
 ![Register EM Device](images/registerdevice2.png)
 
@@ -155,8 +164,8 @@ Next, we will deploy the Edge Manager Agent to the Greengrass device.
 
 Navigate to the **AWS IoT Console → Greengrass → Deployments → Create**
 
-* Name: ‘Deployment for ML using EM’
-* Deployment target: Choose either ‘Core device’ to deploy this to a single IoT Thing, or ‘Thing group’ to deploy it to all Greengrass Cores in a Thing Group. In a production environment, Thing Groups can be used to deploy components to a fleet of devices
+* **Name:** ‘Deployment for ML using EM’
+* **Deployment target:** Choose either ‘Core device’ to deploy this to a single IoT Thing, or ‘Thing group’ to deploy it to all Greengrass Cores in a Thing Group. In a production environment, Thing Groups can be used to deploy components to a fleet of devices
 
 ![Create Deployment](images/createdeployment.png)
 
