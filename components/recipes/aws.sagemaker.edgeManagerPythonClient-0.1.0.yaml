@@ -15,6 +15,10 @@ ComponentConfiguration:
           - "aws.greengrass#PublishToIoTCore"
           resources:
           - "em/inference"
+    modelComponentName: "SMEM-Image-Classification-Model"
+    modelName: "mxnetclassifier"
+    captureInference: "False"
+
 ComponentDependencies:
   aws.greengrass.SageMakerEdgeManager:
     VersionRequirement: ">=1.0.0"
@@ -25,7 +29,7 @@ Manifests:
     architecture: "aarch64"
   Lifecycle:
     run:
-      script: "sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py {artifacts:path}"
+      script: "sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py -i {artifacts:path} -c '{configuration:/modelComponentName}' -m '{configuration:/modelName}' -a {configuration:/captureInference}"
       RequiresPrivilege: true
     Artifacts:
       - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
