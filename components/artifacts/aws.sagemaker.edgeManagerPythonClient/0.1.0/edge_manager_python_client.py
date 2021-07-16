@@ -11,6 +11,7 @@ import random
 from agent_pb2 import (ListModelsRequest, LoadModelRequest, PredictRequest,
                        UnLoadModelRequest, DescribeModelRequest, CaptureDataRequest, Tensor, 
                        TensorMetadata, Timestamp)
+import argparse
 
 import awsiot.greengrasscoreipc
 from awsiot.greengrasscoreipc.model import (
@@ -18,12 +19,30 @@ from awsiot.greengrasscoreipc.model import (
     PublishToIoTCoreRequest
 )
 
-model_url = '/greengrass/v2/work/SMEM-Image-Classification-Model'
-model_name = 'mxnetclassifier'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--image-path', action='store', type=str, required=True, dest='image_path', help='Path to Sample Images')
+parser.add_argument('-c', '--model-component', action='store', type=str, required=True, dest='model_component_name', help='Name of the GGv2 component containing the model')
+parser.add_argument('-m', '--model-name', action='store', type=str, required=True, dest='model_name', help='Friendly name of the model from Edge Packaging Job')
+parser.add_argument('-a', '--capture', action='store', type=bool, required=True, dest='capture_data', default=False, help='Capture inference metadata and raw output')
+
+args = parser.parse_args()
+
+image_path = args.image_path
+model_component_name = args.model_component_name
+model_name = args.model_name
+capture_inference = args.capture_data == 'True'
+
+print ('Images stored in ' + image_path)
+print ('Model Greengrass v2 component name is ' + model_component_name)
+print ('Model name is ' + model_name)
+print ('Capture inference data is set to ' + str(capture_inference))
+
+model_url = '/greengrass/v2/work/' + model_component_name
 tensor_name = 'data'
 SIZE = 224
 tensor_shape = [1, 3, SIZE, SIZE]
-image_path = sys.argv[1]
+
 image_urls = [image_path +'/rainbow.jpeg', image_path+'/tomato.jpeg', image_path+'/dog.jpeg', image_path+'/frog.jpeg']
 
 inference_result_topic = "em/inference"
@@ -77,12 +96,7 @@ def run():
                 LoadModelRequest(url=model_url, name=model_name))
         except Exception as e:
             print(e)
-            print('Model already loaded!')
-
-            response = edge_manager_client.ListModels(ListModelsRequest())
-
-            response = edge_manager_client.DescribeModel(
-                DescribeModelRequest(name=model_name))
+            print('Model failed to load.')
 
         while (True):
             time.sleep(30)
@@ -137,10 +151,8 @@ def run():
            
             # publish results to AWS IoT Core
             message = ('Result=' + result + ' Confidence=' + str(confidence))
-
             qos = QOS.AT_LEAST_ONCE
             TIMEOUT = 10
-
             request = PublishToIoTCoreRequest()
             request.topic_name = inference_result_topic
             request.payload = bytes(message, "utf-8")
@@ -150,18 +162,19 @@ def run():
             future = operation.get_response()
             future.result(TIMEOUT)
 
-            # capture inference results in S3
-            print ("Publishing to Amazon S3 bucket")
-            request = CaptureDataRequest(
-                model_name=model_name,
-                capture_id="capture" + str(utc_timestamp),
-                inference_timestamp=Timestamp(seconds=1, nanos=1),
-                input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
-                    byte_data=scaled_frame.tobytes())],
-                output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
-                    byte_data=scaled_frame.tobytes())]
-            )
-            response = edge_manager_client.CaptureData(request)
+            # capture inference results in S3 if enabled
+            if capture_inference:
+                print ("Publishing to Amazon S3 bucket")
+                request = CaptureDataRequest(
+                    model_name=model_name,
+                    capture_id="capture" + str(utc_timestamp),
+                    inference_timestamp=Timestamp(seconds=1, nanos=1),
+                    input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                        byte_data=scaled_frame.tobytes())],
+                    output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                        byte_data=scaled_frame.tobytes())]
+                )
+                response = edge_manager_client.CaptureData(request)
 
         response = edge_manager_client.UnLoadModel(
             UnLoadModelRequest(name=model_name))
