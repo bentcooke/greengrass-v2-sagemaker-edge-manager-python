@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--image-path', action='store', type=str, required=True, dest='image_path', help='Path to Sample Images')
 parser.add_argument('-c', '--model-component', action='store', type=str, required=True, dest='model_component_name', help='Name of the GGv2 component containing the model')
 parser.add_argument('-m', '--model-name', action='store', type=str, required=True, dest='model_name', help='Friendly name of the model from Edge Packaging Job')
-parser.add_argument('-a', '--capture', action='store', type=bool, required=True, dest='capture_data', default=False, help='Capture inference metadata and raw output')
+parser.add_argument('-a', '--capture', action='store', type=str, required=True, dest='capture_data', default=False, help='Capture inference metadata and raw output')
 
 args = parser.parse_args()
 
