@@ -1,24 +1,21 @@
-import random
-import sys
-import time
-import datetime
-from datetime import timezone
 import agent_pb2_grpc
 import cv2
-import grpc
-import numpy as np
-import random
 from agent_pb2 import (ListModelsRequest, LoadModelRequest, PredictRequest,
                        UnLoadModelRequest, DescribeModelRequest, CaptureDataRequest, Tensor, 
                        TensorMetadata, Timestamp)
+import grpc
+import numpy as np
+import random
+import uuid
 import argparse
-
+import time
+import signal
+import sys
 import awsiot.greengrasscoreipc
 from awsiot.greengrasscoreipc.model import (
     QOS,
     PublishToIoTCoreRequest
 )
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--image-path', action='store', type=str, required=True, dest='image_path', help='Path to Sample Images')
@@ -42,10 +39,27 @@ model_url = '/greengrass/v2/work/' + model_component_name
 tensor_name = 'data'
 SIZE = 224
 tensor_shape = [1, 3, SIZE, SIZE]
-
 image_urls = [image_path +'/rainbow.jpeg', image_path+'/tomato.jpeg', image_path+'/dog.jpeg', image_path+'/frog.jpeg']
 
+channel = grpc.insecure_channel('unix:///tmp/sagemaker_edge_agent_example.sock')
+
 inference_result_topic = "em/inference"
+edge_manager_client = agent_pb2_grpc.AgentStub(channel)
+
+# When the component is stopped.
+def sigterm_handler(signum, frame):
+    global edge_manager_client
+    try:
+        response = edge_manager_client.UnLoadModel(UnLoadModelRequest(name=model_name))
+        print ('Model unloaded.')
+        sys.exit(0)
+    except Exception as e:
+        print ('Model failed to unload')
+        print (e)
+        sys.exit(-1)
+
+signal.signal(signal.SIGINT, sigterm_handler)
+signal.signal(signal.SIGTERM, sigterm_handler)
 
 # classifications for the model
 class_labels = ['ak47', 'american-flag', 'backpack', 'baseball-bat', 'baseball-glove', 'basketball-hoop', 'bat',
@@ -84,102 +98,96 @@ class_labels = ['ak47', 'american-flag', 'backpack', 'baseball-bat', 'baseball-g
                 'wheelbarrow', 'windmill', 'wine-bottle', 'xylophone', 'yarmulke', 'yo-yo', 'zebra', 'airplanes-101',
                 'car-side-101', 'faces-easy-101', 'greyhound', 'tennis-shoes', 'toad', 'clutter']
 
-
 def run():
-    with grpc.insecure_channel('unix:///tmp/sagemaker_edge_agent_example.sock') as channel:
+    global edge_manager_client
+    ipc_client = awsiot.greengrasscoreipc.connect()
 
-        edge_manager_client = agent_pb2_grpc.AgentStub(channel)
-        ipc_client = awsiot.greengrasscoreipc.connect()
+    try:
+        response = edge_manager_client.LoadModel(
+            LoadModelRequest(url=model_url, name=model_name))
+    except Exception as e:
+        print('Model failed to load.')
+        print(e)
 
-        try:
-            response = edge_manager_client.LoadModel(
-                LoadModelRequest(url=model_url, name=model_name))
-        except Exception as e:
-            print(e)
-            print('Model failed to load.')
+    while (True):
+        time.sleep(30)
+        print('New prediction')
 
-        while (True):
-            time.sleep(30)
+        image_url = image_urls[random.randint(0,3)]
+        print ('Picked ' + image_url + ' to perform inference on')
 
-            print('New prediction')
-            
-            image_url = image_urls[random.randint(0,3)]
+        # Scale image / preprocess
+        img = cv2.imread(image_url)
+        frame = resize_short_within(img, short=SIZE, max_size=SIZE * 2)
+        nn_input_size = SIZE
+        nn_input = cv2.resize(frame, (nn_input_size, int(nn_input_size/4 * 3 )))
+        nn_input = cv2.copyMakeBorder(nn_input, int(nn_input_size / 8), int(nn_input_size / 8),
+                                    0, 0, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        copy_frame = nn_input[:]
+        nn_input = nn_input.astype('float32')
+        nn_input = nn_input.reshape((nn_input_size * nn_input_size, 3))
+        scaled_frame = np.transpose(nn_input)
 
-            print ('Picked ' + image_url + ' to perform inference on')
-
-            img = cv2.imread(image_url)
-
-            frame = resize_short_within(img, short=SIZE, max_size=SIZE * 2)
-            nn_input_size = SIZE
-            nn_input = cv2.resize(frame, (nn_input_size, int(nn_input_size/4 * 3 )))
-            nn_input = cv2.copyMakeBorder(nn_input, int(nn_input_size / 8), int(nn_input_size / 8),
-                                      0, 0, cv2.BORDER_CONSTANT, value=(0, 0, 0))
-            copy_frame = nn_input[:]
-            nn_input = nn_input.astype('float32')
-            nn_input = nn_input.reshape((nn_input_size * nn_input_size, 3))
-            scaled_frame = np.transpose(nn_input)
-
-            request = PredictRequest(name=model_name, tensors=[Tensor(tensor_metadata=TensorMetadata(
-                name=tensor_name, data_type=5, shape=tensor_shape), byte_data=scaled_frame.tobytes())])
-
-            dt = datetime.datetime.now(timezone.utc)
-            utc_time = dt.replace(tzinfo=timezone.utc)
-            utc_timestamp = utc_time.timestamp()
-
-            response = edge_manager_client.Predict(request)
-
-            # read output tensors
-            i = 0
-            detections = []
-
-            for t in response.tensors:
-                print("Flattened RAW Output Tensor : " + str(i + 1))
-                i += 1
-                deserialized_bytes = np.frombuffer(t.byte_data, dtype=np.float32)
-                detections.append(np.asarray(deserialized_bytes))
-
+        # Call prediction
+        request = PredictRequest(name=model_name, tensors=[Tensor(tensor_metadata=TensorMetadata(
+            name=tensor_name, data_type=5, shape=tensor_shape), byte_data=scaled_frame.tobytes())])
         
-            # Get the highest confidence inference result
-            index = np.argmax(detections)
-            result = class_labels[index]
-            confidence = detections[0][index]
+        try:
+            response = edge_manager_client.Predict(request)
+        except Exception as e:
+            print('Prediction failed')
+            print(e)
 
-            print('Result is ', result)
-            print('Confidence is ', confidence)
+        # read output tensors and append them to matrix
+        detections = []
+        for t in response.tensors:
+            deserialized_bytes = np.frombuffer(t.byte_data, dtype=np.float32)
+            detections.append(np.asarray(deserialized_bytes))
 
-            print ("Got inference results, publishing to AWS IoT Core")
-           
-            # publish results to AWS IoT Core
-            message = ('Result=' + result + ' Confidence=' + str(confidence))
-            qos = QOS.AT_LEAST_ONCE
-            TIMEOUT = 10
-            request = PublishToIoTCoreRequest()
-            request.topic_name = inference_result_topic
-            request.payload = bytes(message, "utf-8")
-            request.qos = qos
-            operation = ipc_client.new_publish_to_iot_core()
-            operation.activate(request)
-            future = operation.get_response()
-            future.result(TIMEOUT)
+        # Get the highest confidence inference result
+        index = np.argmax(detections[0])
+        result = class_labels[index]
+        confidence = detections[0][index]
 
-            # capture inference results in S3 if enabled
-            if capture_inference:
-                print ("Publishing to Amazon S3 bucket")
-                request = CaptureDataRequest(
-                    model_name=model_name,
-                    capture_id="capture" + str(utc_timestamp),
-                    inference_timestamp=Timestamp(seconds=1, nanos=1),
-                    input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
-                        byte_data=scaled_frame.tobytes())],
-                    output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
-                        byte_data=scaled_frame.tobytes())]
-                )
+        # Print results in local log
+        print('Result is ', result)
+        print('Confidence is ', confidence)
+
+        # Publish highest confidence result to AWS IoT Core
+        print ('Got inference results, publishing to AWS IoT Core')
+        message = ('Result=' + result + ' Confidence=' + str(confidence))
+        request = PublishToIoTCoreRequest()
+        request.topic_name = inference_result_topic
+        request.payload = bytes(message, "utf-8")
+        request.qos = QOS.AT_LEAST_ONCE
+        operation = ipc_client.new_publish_to_iot_core()
+        operation.activate(request)
+        future = operation.get_response()
+        future.result(10)
+
+        # capture inference results in S3 if enabled
+        if capture_inference:
+            print ('Capturing inference data in Amazon S3')
+            now = time.time()
+            seconds = int(now)
+            nanos = int((now - seconds) * 10**9)
+            timestamp = Timestamp(seconds=seconds, nanos=nanos)
+            request = CaptureDataRequest(
+                model_name=model_name,
+                capture_id=str(uuid.uuid4()),
+                inference_timestamp=timestamp,
+                input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                    byte_data=scaled_frame.tobytes())],
+                output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                    byte_data=detections[0].tobytes())]
+            )
+            try:
                 response = edge_manager_client.CaptureData(request)
+            except Exception as e:
+                print('CaptureData request failed')
+                print(e)
 
-        response = edge_manager_client.UnLoadModel(
-            UnLoadModelRequest(name=model_name))
-
-
+## Scaling functions
 def _get_interp_method(interp, sizes=()):
     """Get the interpolation method for resize functions.
     The major purpose of this function is to wrap a random interp method selection
