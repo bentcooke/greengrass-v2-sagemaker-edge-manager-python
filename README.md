@@ -24,7 +24,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
     * protobuf
     * grpcio
     * You can install them with this command if they are not already installed on your device:
-    * * ``pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk``
+    * * ``pip3 install --upgrade grpcio-tools numpy protopbuf grpcio opencv-python-headless awsiotsdk``
 * A certificate and private key provisioned to your device.
 * Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
 * The Greengrass device has an IoT Thing Name that matches the regex: ``^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$`` due to SageMaker Edge Manager limitation
@@ -218,8 +218,8 @@ tail -f /greengrass/v2/logs/greengrass.log
 The output of the Greengrass log should contain lines similar to the following:
 
 ```
-2021-04-07T21:05:41.142Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-start. {componentIdentifier=aws.sagemaker.edgeManager-v0.1.0}
-2021-04-07T21:05:41.157Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-finish. {componentIdentifier=aws.sagemaker.edgeManager-v0.1.0}
+2021-04-07T21:05:41.142Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-start. {componentIdentifier=aws.greengrass.SageMakerEdgeManager-v0.1.0}
+2021-04-07T21:05:41.157Z [INFO] (pool-2-thread-19) com.aws.greengrass.componentmanager.ComponentStore: delete-component-finish. {componentIdentifier=aws.greengrass.SageMakerEdgeManager-v0.1.0}
 2021-04-07T21:05:44.580Z [INFO] (pool-2-thread-12) com.aws.greengrass.deployment.DeploymentService: Current deployment finished. {DeploymentId=be1736e2-cb47-4a6a-a561-5e089dd4822f, serviceName=DeploymentService, currentState=RUNNING}
 2021-04-07T21:05:44.663Z [INFO] (pool-2-thread-12) com.aws.greengrass.deployment.IotJobsHelper: Updating status of persisted deployment. {Status=SUCCEEDED, StatusDetails={detailed-deployment-status=SUCCESSFUL}, ThingName=iMX8MQEVK_GG_Core_001, JobId=be1736e2-cb47-4a6a-a561-5e089dd4822f}
 2021-04-07T21:05:49.410Z [INFO] (Thread-4) com.aws.greengrass.deployment.IotJobsHelper: Job status update was accepted. {Status=SUCCEEDED, ThingName=iMX8MQEVK_GG_Core_001, JobId=be1736e2-cb47-4a6a-a561-5e089dd4822f}
@@ -247,13 +247,13 @@ We will use a Jupiter Notebook to train an image classification MXNet model. In 
 Open the **Amazon SageMaker console** **→ Notebook → Notebook instances → Create notebook instance**
 
 
-* Notebook instance name: EdgeTrainingInstance
-* Notebook instance type: ml.t2.medium
-* IAM Role: ‘Create a new role’, leave the default settings, and click ‘Create role’.
+* **Notebook instance name:** EdgeTrainingInstance
+* **Notebook instance type:** ml.t2.medium
+* **IAM Role:** ‘Create a new role’, leave the default settings, and click ‘Create role’.
 
 Open the Jupyter Notebook instance. 
 
-Upload the file ‘image-classification-fulltraining-highlevel.ipynb’ and open it.
+Upload the file ‘image-classification-fulltraining-highlevel.ipynb’ and open it in the Jupyter Notebook.
 
 Follow the steps carefully in the Jupyter Notebook by pressing the Run button. Be sure to wait for each step to complete before proceeding to the next step. 
 
@@ -272,23 +272,24 @@ Next, we will compile the model to optimize and take advantage of the architectu
 
 Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → Create compilation job**
 
-* Job settings:
-    * Job name: imx8qm-image-classification-001
-    * IAM Role: Create a new role
-        * S3 buckets you specify: Any S3 Bucket
+* **Job settings:**
+    * **Job name:** imx8qm-image-classification-001
+    * **IAM Role:** Create a new role
+        * **S3 buckets you specify:** Any S3 Bucket
         * Click on ‘Create role’
-* Input configuration:
-    * Location of model artifacts: ``s3://<S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz``
+* **Input configuration:**
+    * **Location of model artifacts:** ``s3://<Components S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz``
         * This is the location of the uncompiled model trained in step **‘Train MXNet model on Jupyter Notebook’**
-    * Data input configuration: {"data":[1, 3, 224, 224]}
-    * Machine learning framework: MXNet
+    * **Data input configuration:** {"data":[1, 3, 224, 224]}
+        * This is the input shape of the data for the model
+    * **Machine learning framework:** MXNet
 
 ![Neo compilation job](images/neocompilationjob.png)
 
 * Output configuration
     * Target device
-    * Target device: imx8qm
-    * S3 Output location: ``s3://<S3 Bucket Name>/models/compiled``
+    * **Target device:** imx8qm or whichever device you are running this workshop on.
+    * **S3 Output location:** ``s3://<Components S3 Bucket Name>/models/compiled``
 
 Click on ‘Submit’. The compilation job will take 2-3 minutes. When it is finished, the Status will change to ‘COMPLETED’
 
@@ -306,10 +307,10 @@ Next we will prepare the model to integrate with the Edge Manager Agent. The pac
 
 Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job → Create Edge packaging job**
 
-* Edge packaging job name: imx8qm-image-classification-packaging-001
-* Model name: mxnetclassifier
-* Model version: 1.0
-* IAM role:
+* **Edge packaging job name:** imx8qm-image-classification-packaging-001
+* **Model name:** mxnetclassifier
+* **Model version:** 1.0
+* **IAM role:**
     * Create a new role
     * Any S3 bucket
     * Create Role
@@ -318,13 +319,17 @@ Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job �
 
 Click ‘Next’
 
-* Compilation job name:  imx8qm-image-classification-001 (this is the name of the compilation job from the Neo compilation job)
+* **Compilation job name:**  imx8qm-image-classification-001 (this is the name of the compilation job from the Neo compilation job)
 
 Click ‘Next’
 
-* S3 bucket URI: ``s3://<S3-Bucket-Name>/models/packaged/``
+* **S3 bucket URI:** ``s3://<S3-Bucket-Name>/models/packaged/``
+* Click on 'Greengrass V2 component'
+  * **Component name:** SMEM-Image-Classification-Model
+  * **Component description:** Packaged MXNet Classification Model
+  * **Component version:** 1.0.0
 
-![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png.png)
+![Create Edge Packaging Job screen 2](images/createedgepackagingjob2.png)
 
 Click ‘Submit’. The packaging job will take approximately 2-3 minutes. When it is done the Status will change to ‘COMPLETED’
 
@@ -332,40 +337,13 @@ Check that the packaged model is present in the Amazon S3 output location provid
 
 ![Packaging Job in S3](images/s3packagedjob.png)
 
-## Create the Greengrass component for the model
-
-Open the file ‘com.model.image.classifier-0.1.0.yaml’. Under ‘Artifacts’, change the URI for your packaged model to the S3 URI created in the previous step. You can change YOUR_BUCKET_NAME to the correct S3 bucket where your packaged model is stored on Amazon S3.
-
-Navigate to the **AWS IoT Console → Greengrass → Components → Create Component**
-
-Choose ‘Enter recipe as YAML’ and copy the contents of /recipes/com.model.image.classifier-0.1.0.yaml into the Recipe text box.
-
-Click on ‘Create Component’, and then check to ensure that the Status of the component is ‘Deployable’. Review the component description for any errors.
+The Greengrass component should also be created. Navigate to the **AWS IoT Console → Greengrass → Components** and check that 'SMEM-Image-Classification-Model' is present.
 
 ## Create the Greengrass component for the application
 
 The application is what implements the Edge Manager Agent client, as well as do any pre-processing and post-processing of the inference results.
 
 The Edge Manager Agent uses Protobuf and GRPC to communicate. The application needs to communicate with the Edge Manager Agent over GRPC and needs to implement the correct Protobuf calls. 
-
-First we will install the necessary tools on the host machine:
-
-```
-pip install grpcio-tools numpy protobuf grpcio opencv-python
-pip install --upgrade protobuf
-```
-
-Next we will create the GRPC data model in Python:
-
-```
-python -m grpc_tools.protoc -I =<path/to/edge-manager-package folder>/docs/api/ \
- --python_out=components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/ \
- --grpc_python_out=components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0 agent.proto
-```
-
-Replace <path/to/edge-manager-package folder> with the path to the edge-manager-package folder that contains the contents of the Edge Manager Agent .tgz file downloaded in the previous step. The API folder contains the Protobuf specification for communicating with the Agent.
-
-Ensure that the ‘agent_pb2_grpc.py’ and ‘agent_pb2.py’ artifacts were created in the components/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0 folder.
 
 Review the code in the edge_manager_python_client.py script. Note the lifecycle of the model. Ensure model_url points to the name of the Greengrass component containing the Image classification model. Check the model_name and ensure it is the same as the name given in the Edge Manager packaging job.
 
@@ -408,7 +386,7 @@ Click the checkmark box next to the previously created deployment ‘Deployment 
 
 Click ‘Next’ and on the ‘Select components’ menu, turn off the option ‘Show only selected components’ for ‘My components’. 
 
-Select ‘com.model.image-classifier’ and ‘aws.sagemaker.edgeManagerPythonClient’.
+Select ‘SMEM-Image-Classification-Model’ and ‘aws.sagemaker.edgeManagerPythonClient’.
 
 ![Model and Application Deployment](images/modelandapplicationdeployment.png)
 
@@ -420,25 +398,39 @@ Wait 2-3 minutes and then check that your Greengrass Core device is HEALTHY from
 
 ![Healthy GG Core](images/healthycore.png)
 
-To check if the application was successfully deployed, tail the component log on the device:
+To check if the application was successfully deployed, tail the SageMaker component log on the device:
 
 ```
-tail -f /greengrass/v2/logs/aws.sagemaker.edgeManager.log
+tail -f /greengrass/v2/logs/aws.greengrass.SageMakerEdgeManager.log
 ```
 
 If the LoadModel request from the application was successful, the Edge Manager Agent log will show the meta data about the machine learning model:
 
 ```
-2021-04-09T01:02:16.206Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.205][I] Model will run on CPU. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
-2021-04-09T01:02:16.349Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] backend name is tvm. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
-2021-04-09T01:02:16.350Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] DLR backend = kTVM. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
-2021-04-09T01:02:16.350Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] Finished populating metadata. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
-2021-04-09T01:02:16.351Z [INFO] (Copier) aws.sagemaker.edgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-04-09T01:02:16.348][I] Model:mxnetclassifier loaded!. {scriptName=services.aws.sagemaker.edgeManager.lifecycle.run.script, serviceName=aws.sagemaker.edgeManager, currentState=RUNNING}
+2021-07-23T01:02:16.206Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-07-23T01:02:16.205][I] Model will run on CPU. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
+2021-07-23T01:02:16.349Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-07-23T01:02:16.348][I] backend name is tvm. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
+2021-07-23T01:02:16.350Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-07-23T01:02:16.348][I] DLR backend = kTVM. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
+2021-07-23T01:02:16.350Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-07-23T01:02:16.348][I] Finished populating metadata. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
+2021-07-23T01:02:16.351Z [INFO] (Copier) aws.greengrass.SageMakerEdgeManager: stdout. {"version":"1.20210305.a4bc999"}[2021-07-23T01:02:16.348][I] Model:mxnetclassifier loaded!. {scriptName=services.aws.greengrass.SageMakerEdgeManager.lifecycle.run.script, serviceName=aws.greengrass.SageMakerEdgeManager, currentState=RUNNING}
 ```
 
-## Get the Inference Results
+Next, check the logs of the application:
+```
+tail -f /greengrass/v2/logs/aws.sagemaker.edgeManagerPythonClient.log
+```
 
-Inference results should be published to AWS IoT Core and to Amazon S3. 
+You will see the prediction requests and results in the log:
+```
+2021-07-23T20:50:53.120Z [INFO] (Copier) aws.sagemaker.edgeManagerPythonClient: stdout. New prediction. {scriptName=services.aws.sagemaker.edgeManagerPythonClient.lifecycle.run.script, serviceName=aws.sagemaker.edgeManagerPythonClient, currentState=RUNNING}
+2021-07-23T20:50:53.120Z [INFO] (Copier) aws.sagemaker.edgeManagerPythonClient: stdout. Picked /greengrass/v2/packages/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.14/frog.jpeg to perform inference on. {scriptName=services.aws.sagemaker.edgeManagerPythonClient.lifecycle.run.script, serviceName=aws.sagemaker.edgeManagerPythonClient, currentState=RUNNING}
+2021-07-23T20:50:53.515Z [INFO] (Copier) aws.sagemaker.edgeManagerPythonClient: stdout. Result is  frog. {scriptName=services.aws.sagemaker.edgeManagerPythonClient.lifecycle.run.script, serviceName=aws.sagemaker.edgeManagerPythonClient, currentState=RUNNING}
+2021-07-23T20:50:53.516Z [INFO] (Copier) aws.sagemaker.edgeManagerPythonClient: stdout. Confidence is  0.93328404. {scriptName=services.aws.sagemaker.edgeManagerPythonClient.lifecycle.run.script, serviceName=aws.sagemaker.edgeManagerPythonClient, currentState=RUNNING}
+2021-07-23T20:50:53.516Z [INFO] (Copier) aws.sagemaker.edgeManagerPythonClient: stdout. Got inference results, publishing to AWS IoT Core. {scriptName=services.aws.sagemaker.edgeManagerPythonClient.lifecycle.run.script, serviceName=aws.sagemaker.edgeManagerPythonClient, currentState=RUNNING}
+```
+
+## Get the Inference Results on AWS IoT Core
+
+Inference results should be published to AWS IoT Core. 
 
 To check the inference results arriving in AWS IoT Core, Navigate to the **AWS IoT Console → Test → MQTT test client.**
 
@@ -446,11 +438,33 @@ Under ‘Subscribe to a topic’, type in ‘em/inference’. Every 30 seconds, 
 
 ![MQTT messages](images/mqttresults.png)
 
+## Turn on data capture
+
+After your device is deployed to the field, you may want to see how your model is performing at the edge. You can turn on data capture in the Edge Manager Python application to have raw input and output tensors, as well as meta data, published for each inference call.
+
+First, modify your Greengrass v2 deployment to turn on this feature.
+
+Navigate to the **AWS IoT Console → Greengrass → Deployments**
+
+Click the checkmark box next to the previously created deployment ‘Deployment for ML using EM’ and then click on ‘Revise’.
+
+Click ‘Next’ and on the ‘Select components’ menu, and then 'Next' again to leave the same components in the deployment. 
+
+Select ‘aws.sagemaker.edgeManagerPythonClient' and then click on 'Configure component'.
+
+Under 'Configuration to merge' input the following to turn on data capture:
+```
+{
+  "captureInference": "True"
+}
+```
+![Configure the application component](images/applicationcomponentconfiguration.png)
+
 To check the inference results meta data, input and output tensors from Amazon S3,Navigate to the **Amazon S3 console → <your-inference-bucket-name>.**
 
 In this S3 bucket, the following folder hierarchy should be present:
 
-* ‘inference-results’ ( you specified in your Edge Manager Greengrass component configuration and Edge Manager device setup)
+* ‘sme-capture’ ( you specified in your Edge Manager Greengrass component configuration and Edge Manager device setup)
     * greengrassv2fleet ( name of your Edge Manager Device Fleet)
         * mxnetclassifier (name of your model from the Edge Manager packaging job)
             * year
@@ -469,3 +483,14 @@ Edge Manager device fleets let you see the operation status of your devices and 
 Open the Amazon Sagemaker AWS Console. Navigate to **Edge Manager → Edge devices → Your EM Device**
 
 ![View Device Status](images/viewdevicestatus.png)
+
+You can also view the overall health of your device fleet for all devices that are set to publish their data capture to the cloud.
+
+Navigate to **Edge Manager → Edge device fleets → greegrassv2fleet**
+
+Click on 'View device fleet operating status'
+
+![View Fleet Status](images/viewfleetstatus.png)
+
+## Conclusion
+With AWS IoT Greengrass v2 and Amazon SageMaker, you can build models in the cloud, deploy them to the edge, and monitor them in the cloud. This completes the full Machine Learning Operations pipeline to manage your IoT ML fleets at scale.
