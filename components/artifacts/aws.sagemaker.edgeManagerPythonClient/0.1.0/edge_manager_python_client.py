@@ -176,9 +176,9 @@ def run():
                 model_name=model_name,
                 capture_id=str(uuid.uuid4()),
                 inference_timestamp=timestamp,
-                input_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                input_tensors=[Tensor(tensor_metadata=TensorMetadata(name="input", data_type=5, shape=tensor_shape), 
                     byte_data=scaled_frame.tobytes())],
-                output_tensors=[Tensor(tensor_metadata=TensorMetadata(name=tensor_name, data_type=5, shape=tensor_shape), 
+                output_tensors=[Tensor(tensor_metadata=TensorMetadata(name="output", data_type=5, shape=[1,257]), 
                     byte_data=detections[0].tobytes())]
             )
             try:
