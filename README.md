@@ -24,7 +24,7 @@ You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Gr
     * protobuf
     * grpcio
     * You can install them with this command if they are not already installed on your device:
-    * * ``pip3 install --upgrade grpcio-tools numpy protopbuf grpcio opencv-python-headless awsiotsdk``
+    * * ``pip3 install --upgrade grpcio-tools numpy protobuf grpcio opencv-python-headless awsiotsdk``
 * A certificate and private key provisioned to your device.
 * Your device is connected and appears as a Greengrass Core device in AWS IoT Greengrass cloud service. 
 * The Greengrass device has an IoT Thing Name that matches the regex: ``^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$`` due to SageMaker Edge Manager limitation
@@ -472,7 +472,7 @@ In this S3 bucket, the following folder hierarchy should be present:
                     * day
                         * hour
 
-Inside the ‘hour’ folder there will be .jsonl objects. These .jsonl files contain meta-data about each inference prediction and result. In the raw-data/input-tensors and output-tensors folders is additional data including the input data shape and output predictions.
+Inside the ‘hour’ folder there will be .jsonl objects. These .jsonl files contain meta-data about each inference prediction and results. The output tensor will be found in the jsonl file. It is a base64 encoded array of confidence levels to classification. In the raw-data/input-tensors is additional data including the input data shape and raw image.
 
 ![S3 Inference Results](images/s3inferenceresults.png)
 
