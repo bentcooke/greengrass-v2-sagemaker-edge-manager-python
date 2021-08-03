@@ -8,7 +8,7 @@ This is an advanced workshop intended for those already familiar with basic AWS 
 
 ## **Preparation:**
 
-You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in [https://github.com/aws-samples/meta-aws-demos/tree/master/nxp-imx8m/aws-iot-greengrass-v2](https://github.com/aws-samples/meta-aws-demos/tree/master/nxp-imx8m/aws-iot-greengrass-v2) to include the Greengrass V2 software with your [i.MX Yocto Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). This image will include all necessary dependencies to run this workshop.
+You will need to build a Linux image for the i.MX8MQEVK that includes AWS IoT Greengrass V2. Follow the steps outlined in [https://github.com/aws-samples/meta-aws-demos/tree/master/nxp-imx8m/aws-iot-greengrass-v2](https://github.com/aws-samples/meta-aws-demos/tree/master/nxp/imx8m) to include the Greengrass V2 software with your [i.MX Yocto Linux build](https://www.nxp.com/docs/en/user-guide/IMX_YOCTO_PROJECT_USERS_GUIDE.pdf). This image will include all necessary dependencies to run this workshop.
 
 ![Greengrass Core](images/GGCore.png)
 
