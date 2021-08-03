@@ -274,9 +274,10 @@ Open the **Amazon SageMaker console** **→ Inference → Compilation jobs → C
 
 * **Job settings:**
     * **Job name:** imx8qm-image-classification-001
-    * **IAM Role:** Create a new role
+    * **IAM Role:** 
+        * Create a new role
         * **S3 buckets you specify:** Any S3 Bucket
-        * Click on ‘Create role’
+        * Click on ‘Create role’   
 * **Input configuration:**
     * **Location of model artifacts:** ``s3://<Components S3 Bucket Name>/models/uncompiled/training-output/img-classification-<date>/output/model.tar.gz``
         * This is the location of the uncompiled model trained in step **‘Train MXNet model on Jupyter Notebook’**
@@ -314,6 +315,9 @@ Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job �
     * Create a new role
     * Any S3 bucket
     * Create Role
+    * After the role is created, click on the created Role which should be named similar to: AmazonSageMaker-ExecutionRole-20210803T115161. Click on 'Attach policies' and add 'AWSGreengrassFullAccess'.
+   
+![Edge Packaging Job IAM Role](edgemanagerpackagingiamrole.png)
 
 ![Create Edge Packaging Job](images/createedgepackingjob.png)
 
