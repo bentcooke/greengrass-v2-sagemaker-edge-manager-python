@@ -317,7 +317,7 @@ Open the **Amazon SageMaker console** **→ Edge Manager→ Edge packaging job �
     * Create Role
     * After the role is created, click on the created Role which should be named similar to: AmazonSageMaker-ExecutionRole-20210803T115161. Click on 'Attach policies' and add 'AWSGreengrassFullAccess'.
    
-![Edge Packaging Job IAM Role](edgemanagerpackagingiamrole.png)
+![Edge Packaging Job IAM Role](images/edgemanagerpackagingiamrole.png)
 
 ![Create Edge Packaging Job](images/createedgepackingjob.png)
 
