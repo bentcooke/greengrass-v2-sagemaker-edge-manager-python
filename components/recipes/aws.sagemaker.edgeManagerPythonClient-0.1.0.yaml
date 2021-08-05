@@ -31,25 +31,25 @@ Manifests:
     run:
       script: "sleep 5 && python3 {artifacts:path}/edge_manager_python_client.py -i {artifacts:path} -c '{configuration:/modelComponentName}' -m '{configuration:/modelName}' -a {configuration:/captureInference}"
       RequiresPrivilege: true
-    Artifacts:
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2.py
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/dog.jpeg
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/tomato.jpeg
-        Permission:
-          Execute: OWNER
-      - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rainbow.jpeg
-        Permission:
-          Execute: OWNER
+  Artifacts:
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/edge_manager_python_client.py
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2.py
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/agent_pb2_grpc.py
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/dog.jpeg
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/frog.jpeg
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/tomato.jpeg
+      Permission:
+        Execute: OWNER
+    - URI: s3://<YOUR BUCKET NAME>/artifacts/aws.sagemaker.edgeManagerPythonClient/0.1.0/rainbow.jpeg
+      Permission:
+        Execute: OWNER
